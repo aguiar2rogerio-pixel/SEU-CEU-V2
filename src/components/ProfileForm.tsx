@@ -1,185 +1,221 @@
-import React, { useState } from 'react';
-import { BRAZIL_STATES, MUNICIPALITIES_BY_STATE } from '../lib/data/brazil-cities';
-import { UserProfile } from '../lib/types';
+import { useState, useEffect } from "react";
+import { BRAZIL_STATES, getCitiesByState, type CityRecord } from "../lib/data/brazil-cities";
+import type { BirthProfile } from "../lib/types";
 
-interface ProfileFormProps {
-  onSave: (profile: UserProfile) => void;
-  initialProfile?: UserProfile | null;
-}
+type Props = {
+  initialProfile?: BirthProfile | null;
+  onSave: (profile: BirthProfile) => void;
+};
 
-export const ProfileForm: React.FC<ProfileFormProps> = ({ onSave, initialProfile }) => {
-  const [name, setName] = useState(initialProfile?.name || '');
-  const [birthDate, setBirthDate] = useState(initialProfile?.birthDate || '');
-  const [timePrecision, setTimePrecision] = useState<'exact' | 'approximate' | 'unknown'>(
-    initialProfile?.timePrecision || 'exact'
+export function ProfileForm({ initialProfile, onSave }: Props) {
+  const [name, setName] = useState(initialProfile?.name ?? "");
+  const [birthDate, setBirthDate] = useState(initialProfile?.birthDate ?? "");
+  
+  const [initialH, initialM] = (initialProfile?.birthTime ?? "12:00").split(":");
+  const [birthHour, setBirthHour] = useState(initialH || "12");
+  const [birthMinute, setBirthMinute] = useState(initialM || "00");
+
+  const [birthTimeAccuracy, setBirthTimeAccuracy] = useState<BirthProfile["birthTimeAccuracy"]>(
+    initialProfile?.birthTimeAccuracy ?? "exact"
   );
-  const [birthHour, setBirthHour] = useState(initialProfile?.birthHour?.toString() || '12');
-  const [birthMinute, setBirthMinute] = useState(initialProfile?.birthMinute?.toString() || '00');
-  const [birthState, setBirthState] = useState(initialProfile?.birthState || 'SP');
-  const [birthCity, setBirthCity] = useState(initialProfile?.birthCity || 'Suzano');
+  
+  const [stateUf, setStateUf] = useState(initialProfile?.birthState ?? "SP");
+  const [cities, setCities] = useState<CityRecord[]>([]);
+  const [selectedCityId, setSelectedCityId] = useState("");
+  const [loadingCities, setLoadingCities] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || !birthDate) return;
-
-    onSave({
-      id: initialProfile?.id || crypto.randomUUID(),
-      name: name.trim(),
-      birthDate,
-      timePrecision,
-      birthHour: parseInt(birthHour, 10),
-      birthMinute: parseInt(birthMinute, 10),
-      birthState,
-      birthCity,
+  useEffect(() => {
+    let isMounted = true;
+    setLoadingCities(true);
+    getCitiesByState(stateUf).then((fetchedCities) => {
+      if (isMounted) {
+        setCities(fetchedCities);
+        setLoadingCities(false);
+      }
     });
-  };
+    return () => {
+      isMounted = false;
+    };
+  }, [stateUf]);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    
+    const foundCity = cities.find((c) => c.id === selectedCityId);
+    if (!foundCity) {
+      alert("Por favor, selecione uma cidade válida da lista.");
+      return;
+    }
+
+    const placeName = `${foundCity.name} - ${foundCity.state}`;
+    const formattedTime = `${birthHour}:${birthMinute}`;
+
+    const updatedProfile: BirthProfile = {
+      schemaVersion: 1,
+      name,
+      birthDate,
+      birthTime: birthTimeAccuracy === "unknown" ? null : formattedTime,
+      birthTimeAccuracy,
+      birthPlace: placeName ? String(placeName) : null,
+      birthState: foundCity.state,
+      birthCity: foundCity.name,
+      birthLatitude: foundCity.latitude,
+      birthLongitude: foundCity.longitude,
+      birthTimezone: foundCity.timezone,
+      timezoneConfirmed: true,
+      updatedAt: new Date().toISOString(),
+    };
+
+    onSave(updatedProfile);
+  }
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-slate-900/90 rounded-2xl border border-amber-500/20 shadow-2xl backdrop-blur-md">
-      
-      {/* SEÇÃO DA PROPOSTA DE VALOR (NOVA ABORDAGEM DE VENDAS) */}
-      <div className="text-center mb-8">
-        <span className="inline-block px-3 py-1 mb-3 text-xs font-medium tracking-wider text-amber-300 uppercase bg-amber-500/10 rounded-full border border-amber-500/20">
-          ✨ Leitura Astrológica Personalizada
+    <form onSubmit={handleSubmit} className="profile-form" style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+      <div style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: "0.75rem", marginBottom: "0.25rem" }}>
+        <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#f0c674", textTransform: "uppercase" }}>
+          ✦ Leitura Gratuita e Imediata
         </span>
-        <h1 className="text-3xl font-serif text-amber-100 mb-3 leading-tight">
-          Descubra o mapa dos seus próximos passos.
-        </h1>
-        <p className="text-slate-300 text-sm leading-relaxed">
-          Insira seus dados abaixo para revelar instantaneamente a leitura dos seus <strong className="text-amber-200">três pilares essenciais</strong> (Sol, Lua e Ascendente).
+        <p style={{ margin: "0.3rem 0 0", fontSize: "0.85rem", color: "#b8b2c4" }}>
+          Preencha seus dados de nascimento para gerar o seu mapa na hora.
         </p>
       </div>
 
-      {/* SELO DE PRIVACIDADE E TECNOLOGIA */}
-      <div className="mb-6 p-3 bg-slate-800/50 rounded-xl border border-slate-700/50 flex items-center gap-3">
-        <span className="text-amber-400 text-lg">🔒</span>
-        <p className="text-xs text-slate-400 leading-normal">
-          <strong className="text-slate-200">100% Privado:</strong> Cálculos exatos feitos direto no seu aparelho. Sem envio de dados para servidores ou IAs.
-        </p>
+      <div>
+        <label style={{ display: "block", marginBottom: "0.4rem", fontSize: "0.9rem", fontWeight: 500 }}>Como podemos chamar você?</label>
+        <input
+          type="text"
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Seu nome"
+          style={{ width: "100%", padding: "0.85rem", borderRadius: "10px", background: "#161622", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", fontSize: "1rem" }}
+        />
       </div>
 
-      {/* FORMULÁRIO DE COLETA */}
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <label className="block text-xs font-medium text-amber-200/80 uppercase tracking-wider mb-2">
-            Como podemos chamar você?
-          </label>
-          <input
-            type="text"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Seu nome"
-            className="w-full px-4 py-3 bg-slate-950/60 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
-          />
-        </div>
+      <div>
+        <label style={{ display: "block", marginBottom: "0.4rem", fontSize: "0.9rem", fontWeight: 500 }}>Data de Nascimento</label>
+        <input
+          type="date"
+          required
+          value={birthDate}
+          onChange={(e) => setBirthDate(e.target.value)}
+          style={{ width: "100%", padding: "0.85rem", borderRadius: "10px", background: "#161622", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", fontSize: "1rem" }}
+        />
+      </div>
 
-        <div>
-          <label className="block text-xs font-medium text-amber-200/80 uppercase tracking-wider mb-2">
-            Data de Nascimento
-          </label>
-          <input
-            type="date"
-            required
-            value={birthDate}
-            onChange={(e) => setBirthDate(e.target.value)}
-            className="w-full px-4 py-3 bg-slate-950/60 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:border-amber-500 transition-colors"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-amber-200/80 uppercase tracking-wider mb-2">
-            Precisão do Horário
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            {(['exact', 'approximate', 'unknown'] as const).map((precision) => (
-              <button
-                key={precision}
-                type="button"
-                onClick={() => setTimePrecision(precision)}
-                className={`py-2 px-3 text-xs font-medium rounded-lg border transition-all ${
-                  timePrecision === precision
-                    ? 'bg-amber-500/20 border-amber-500 text-amber-200'
-                    : 'bg-slate-950/40 border-slate-700 text-slate-400 hover:border-slate-600'
-                }`}
-              >
-                {precision === 'exact' ? 'Exato' : precision === 'approximate' ? 'Aproximado' : 'Não sei'}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {timePrecision !== 'unknown' && (
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-amber-200/80 uppercase tracking-wider mb-2">Hora</label>
-              <select
-                value={birthHour}
-                onChange={(e) => setBirthHour(e.target.value)}
-                className="w-full px-3 py-3 bg-slate-950/60 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:border-amber-500"
-              >
-                {Array.from({ length: 24 }).map((_, i) => (
-                  <option key={i} value={i} className="bg-slate-900">
-                    {String(i).padStart(2, '0')} h
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-amber-200/80 uppercase tracking-wider mb-2">Minuto</label>
-              <select
-                value={birthMinute}
-                onChange={(e) => setBirthMinute(e.target.value)}
-                className="w-full px-3 py-3 bg-slate-950/60 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:border-amber-500"
-              >
-                {Array.from({ length: 60 }).map((_, i) => (
-                  <option key={i} value={i} className="bg-slate-900">
-                    {String(i).padStart(2, '0')} min
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        )}
-
-        <div>
-          <label className="block text-xs font-medium text-amber-200/80 uppercase tracking-wider mb-2">
-            📍 Local de Nascimento (IBGE Oficial)
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            <select
-              value={birthState}
-              onChange={(e) => {
-                setBirthState(e.target.value);
-                const cities = MUNICIPALITIES_BY_STATE[e.target.value] || [];
-                if (cities.length > 0) setBirthCity(cities[0]);
+      <div>
+        <label style={{ display: "block", marginBottom: "0.4rem", fontSize: "0.9rem", fontWeight: 500 }}>Precisão do Horário</label>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem" }}>
+          {(["exact", "approximate", "unknown"] as const).map((acc) => (
+            <button
+              key={acc}
+              type="button"
+              onClick={() => setBirthTimeAccuracy(acc)}
+              style={{
+                padding: "0.6rem",
+                borderRadius: "8px",
+                border: birthTimeAccuracy === acc ? "1px solid #f0c674" : "1px solid rgba(255,255,255,0.1)",
+                background: birthTimeAccuracy === acc ? "rgba(240, 198, 116, 0.15)" : "#161622",
+                color: birthTimeAccuracy === acc ? "#f0c674" : "#a0a0b0",
+                fontSize: "0.85rem",
+                cursor: "pointer",
+                fontWeight: 500
               }}
-              className="px-3 py-3 bg-slate-950/60 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:border-amber-500"
             >
-              {BRAZIL_STATES.map((st) => (
-                <option key={st} value={st} className="bg-slate-900">{st}</option>
-              ))}
+              {acc === "exact" ? "Exato" : acc === "approximate" ? "Aproximado" : "Não sei"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {birthTimeAccuracy !== "unknown" && (
+        <div>
+          <label style={{ display: "block", marginBottom: "0.4rem", fontSize: "0.9rem", fontWeight: 500 }}>Horário de Nascimento</label>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <select
+              value={birthHour}
+              onChange={(e) => setBirthHour(e.target.value)}
+              style={{ flex: 1, padding: "0.85rem", borderRadius: "10px", background: "#161622", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", fontSize: "1rem" }}
+            >
+              {Array.from({ length: 24 }, (_, i) => {
+                const h = String(i).padStart(2, "0");
+                return (
+                  <option key={h} value={h}>
+                    {h} h
+                  </option>
+                );
+              })}
             </select>
 
+            <span style={{ color: "#f0c674", fontWeight: "bold", fontSize: "1.2rem" }}>:</span>
+
             <select
-              value={birthCity}
-              onChange={(e) => setBirthCity(e.target.value)}
-              className="col-span-2 px-3 py-3 bg-slate-950/60 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:border-amber-500"
+              value={birthMinute}
+              onChange={(e) => setBirthMinute(e.target.value)}
+              style={{ flex: 1, padding: "0.85rem", borderRadius: "10px", background: "#161622", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", fontSize: "1rem" }}
             >
-              {(MUNICIPALITIES_BY_STATE[birthState] || []).map((city) => (
-                <option key={city} value={city} className="bg-slate-900">{city}</option>
+              {Array.from({ length: 60 }, (_, i) => {
+                const m = String(i).padStart(2, "0");
+                return (
+                  <option key={m} value={m}>
+                    {m} min
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        </div>
+      )}
+
+      <div style={{ background: "rgba(255,255,255,0.02)", padding: "1rem", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.06)" }}>
+        <label style={{ display: "block", marginBottom: "0.6rem", fontSize: "0.9rem", fontWeight: 600, color: "#f0c674" }}>
+          📍 Local de Nascimento (IBGE Oficial)
+        </label>
+        
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "0.75rem" }}>
+          <div>
+            <label style={{ display: "block", marginBottom: "0.3rem", fontSize: "0.8rem", opacity: 0.8 }}>Estado</label>
+            <select
+              value={stateUf}
+              onChange={(e) => { setStateUf(e.target.value); setSelectedCityId(""); }}
+              style={{ width: "100%", padding: "0.75rem", borderRadius: "8px", background: "#161622", border: "1px solid rgba(255,255,255,0.15)", color: "#fff" }}
+            >
+              {BRAZIL_STATES.map((uf) => (
+                <option key={uf} value={uf}>{uf}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: "block", marginBottom: "0.3rem", fontSize: "0.8rem", opacity: 0.8 }}>
+              {loadingCities ? "Carregando..." : "Município"}
+            </label>
+            <select
+              required
+              value={selectedCityId}
+              onChange={(e) => setSelectedCityId(e.target.value)}
+              disabled={loadingCities}
+              style={{ width: "100%", padding: "0.75rem", borderRadius: "8px", background: "#161622", border: "1px solid rgba(255,255,255,0.15)", color: "#fff" }}
+            >
+              <option value="">{loadingCities ? "Buscando cidades..." : "Selecione a cidade..."}</option>
+              {cities.map((city) => (
+                <option key={city.id} value={city.id}>{city.name}</option>
               ))}
             </select>
           </div>
         </div>
+      </div>
 
-        <button
-          type="submit"
-          className="w-full mt-6 py-4 px-6 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-semibold rounded-xl shadow-lg shadow-amber-500/20 transition-all transform active:scale-[0.99]"
-        >
-          Calcular meu céu
-        </button>
-      </form>
-    </div>
+      <button
+        type="submit"
+        style={{
+          marginTop: "0.5rem", padding: "0.95rem", background: "linear-gradient(135deg, #f0c674 0%, #d0a654 100%)", color: "#161622",
+          border: "none", borderRadius: "10px", fontWeight: 700, cursor: "pointer", fontSize: "1.05rem",
+          boxShadow: "0 4px 14px rgba(240, 198, 116, 0.25)"
+        }}
+      >
+        Descobrir meu mapa agora
+      </button>
+    </form>
   );
-};
+}
