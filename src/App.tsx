@@ -91,7 +91,6 @@ function App() {
   const [installEvent, setInstallEvent] = useState<Event | null>(null);
   const [isDeepReadingOpen, setIsDeepReadingOpen] = useState(false);
 
-  // Estados para o Gerador de Prompts e Leitura Guardada da IA
   const [aiReadingText, setAiReadingText] = useState<string>(() => loadSavedAiReading());
   const [inputAiText, setInputAiText] = useState<string>("");
   const [isEditingAi, setIsEditingAi] = useState<boolean>(false);
@@ -145,7 +144,7 @@ function App() {
       setProfile(nextProfile);
       setSelectedDate(currentLocalISODate());
       setTab("today");
-      setSuccess("Perfil salvo neste aparelho. Sua semana está sendo calculada.");
+      setSuccess("Perfil salvo neste aparelho. Seu mapa foi calculado.");
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Não foi possível salvar o perfil.");
     }
@@ -235,10 +234,12 @@ function App() {
       <main className="onboarding-shell">
         <div className="onboarding-brand"><BrandMark /><span>SEU CÉU</span></div>
         <div className="onboarding-copy">
-          <span className="eyebrow"><Sparkles size={14} aria-hidden="true" /> UM GUIA PARA A SUA SEMANA</span>
-          <h1>O céu muda.<br /><em>Seu ponto de partida também.</em></h1>
-          <p>Uma leitura astrológica pessoal, montada com posições calculadas no seu aparelho — com espaço para incertezas, sem respostas inventadas.</p>
-          <div className="onboarding-promise"><ShieldCheck size={17} aria-hidden="true" /><span>Sem conta. Sem enviar seus dados natais a uma API ou IA.</span></div>
+          <span className="eyebrow"><Sparkles size={14} aria-hidden="true" /> LEITURA ASTROLÓGICA PESSOAL</span>
+          <h1>Descubra o céu<br /><em>do momento em que você nasceu.</em></h1>
+          <p>
+            Preencha seus dados abaixo para revelar imediatamente os seus <strong>três pilares essenciais</strong> — <strong>Sol</strong> (sua essência), <strong>Lua</strong> (suas emoções) e <strong>Ascendente</strong> (sua expressão no mundo) — com precisão astronômica calculada direto no seu aparelho.
+          </p>
+          <div className="onboarding-promise"><ShieldCheck size={17} aria-hidden="true" /><span>100% privado: sem cadastro e sem enviar seus dados para servidores ou IA.</span></div>
         </div>
         <section className="onboarding-form-panel"><ProfileForm onSave={handleSaveProfile} /></section>
         {error && <div className="toast toast--error" role="alert">{error}</div>}
