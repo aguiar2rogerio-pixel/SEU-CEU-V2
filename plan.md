@@ -21,7 +21,7 @@ Entregar do zero um PWA instalável, confortável no celular e simples de manter
 - **Interpretação:** catálogo de regras tipadas em português, com textos editáveis num módulo separado. A aplicação seleciona os contatos relevantes entre trânsitos e posições natais e monta destaques práticos; não cria posições ou aspectos não retornados pelo cálculo. Quando não há aspecto pessoal forte, deixa isso explícito e apresenta uma reflexão geral identificada como tal.
 - **Persistência e backup:** módulo versionado de perfil e leituras em `localStorage`; exportação de JSON, validação da estrutura na importação e opção de apagar dados locais com confirmação.
 - **PWA:** manifesto próprio, ícones PNG/SVG e service worker gerado pelo plugin Vite PWA/Workbox com precache dos recursos compilados e navegação de fallback. A semana calculada permanece no aparelho. A interface avisa que limpar os dados do navegador ou trocar de dispositivo pode remover o perfil e recomenda exportar backup.
-- **Publicação e validação:** novo repositório privado do GitHub, uma única branch `main`, Vercel ligada ao repositório e reconstrução automática a cada push. Usar URL Vercel gerada inicialmente, sem comprar domínio. Validar diretamente a versão de produção publicada, sem iniciar nem usar Preview do WebDev. O histórico GitHub é o registro principal e o README dá instruções passo a passo para manutenção.
+- **Publicação e validação:** repositório independente no GitHub, uma única branch `main`, compilação pelo GitHub Actions e publicação da pasta `dist` no GitHub Pages. Validar diretamente a versão publicada no endereço do GitHub Pages. O README dá instruções passo a passo para manutenção.
 
 ## Estrutura do projeto
 

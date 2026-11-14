@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  base: "/SEU-CEU-V2/",
   plugins: [
     react(),
     VitePWA({
@@ -11,7 +12,7 @@ export default defineConfig({
       includeAssets: ["icons/icon.svg"],
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,ico,webmanifest,json,woff2}"],
-        navigateFallback: "/index.html",
+        navigateFallback: "/SEU-CEU-V2/index.html",
         cleanupOutdatedCaches: true,
       },
     }),

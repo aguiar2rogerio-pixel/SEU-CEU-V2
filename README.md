@@ -26,7 +26,7 @@ O app não tem login, banco de usuários ou sincronização. Ele guarda o perfil
 
 ## Como manter o projeto no GitHub
 
-O fluxo escolhido é uma única branch, `main`: uma alteração aprovada entra em `main` e a Vercel reconstrói o site automaticamente. Para uma alteração simples de texto, abra `src/lib/readings.ts` no GitHub, use o botão de edição, salve e confirme o commit em `main`. O projeto deve ser atualizado por pequenas mudanças; evite editar `src/lib/ephemeris.ts` ou `src/lib/aspects.ts` sem revisar também os testes.
+O fluxo usa somente a branch `main`: uma alteração salva nessa branch aciona o GitHub Actions, que compila o projeto e publica a pasta `dist` no GitHub Pages. Para uma alteração simples de texto, abra `src/lib/readings.ts` no GitHub, use o botão de edição e confirme o commit em `main`. O projeto deve ser atualizado por pequenas mudanças; evite editar `src/lib/ephemeris.ts` ou `src/lib/aspects.ts` sem revisar também os testes.
 
 - **Textos e tom das leituras:** `src/lib/readings.ts`.
 - **Avisos, formulário de nascimento e precisão:** `src/components/ProfileForm.tsx` e `src/App.tsx`.
@@ -41,7 +41,7 @@ Os mapas e trânsitos usam longitude eclíptica tropical **geocêntrica** (vista
 
 ## Teste da versão publicada (sem Preview)
 
-Depois que o GitHub e a Vercel estiverem conectados, acesse o endereço de produção fornecido pela Vercel para testar o aplicativo; não use o Preview do ambiente de desenvolvimento. Confira o cadastro, a semana, o mapa, exportação/restauração do backup, atualização após recarregar a página e abertura offline depois do primeiro acesso com conexão. O perfil de teste continua apenas no navegador usado para esse teste.
+Depois que o GitHub Actions concluir a publicação, acesse https://aguiar2rogerio-pixel.github.io/SEU-CEU-V2/ para testar o aplicativo. Confira o cadastro, a semana, o mapa, exportação/restauração do backup, atualização após recarregar a página e abertura offline depois do primeiro acesso com conexão. O perfil de teste continua apenas no navegador usado para esse teste.
 
 ## Para executar no computador
 
