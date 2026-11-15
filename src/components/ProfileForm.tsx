@@ -61,7 +61,7 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
       birthCity: foundCity.name,
       birthLatitude: foundCity.latitude,
       birthLongitude: foundCity.longitude,
-      birthTimezone: foundCity.timezone,
+      birthTimezone: foundCity.timezone, // CORRIGIDO: Usa o fuso dinâmico correto da cidade
       timezoneConfirmed: true,
       updatedAt: new Date().toISOString(),
     };
@@ -71,15 +71,6 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="profile-form" style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-      <div style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: "0.75rem", marginBottom: "0.25rem" }}>
-        <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#f0c674", textTransform: "uppercase" }}>
-          ✦ Leitura Gratuita e Imediata
-        </span>
-        <p style={{ margin: "0.3rem 0 0", fontSize: "0.85rem", color: "#b8b2c4" }}>
-          Preencha seus dados de nascimento para gerar o seu mapa na hora.
-        </p>
-      </div>
-
       <div>
         <label style={{ display: "block", marginBottom: "0.4rem", fontSize: "0.9rem", fontWeight: 500 }}>Como podemos chamar você?</label>
         <input
@@ -214,7 +205,7 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
           boxShadow: "0 4px 14px rgba(240, 198, 116, 0.25)"
         }}
       >
-        Descobrir meu mapa agora
+        Calcular meu céu
       </button>
     </form>
   );

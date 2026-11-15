@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  CalendarDays, Check, ChevronRight, Compass, Copy, Download, FileText, Lock, Map, Moon, Orbit,
+  CalendarDays, Check, ChevronRight, Copy, Download, FileText, Map, Moon, Orbit,
   RefreshCw, ShieldCheck, Sparkles, Sun, Trash2, Upload, WifiOff, X,
 } from "lucide-react";
 import { ProfileForm } from "./components/ProfileForm";
 import { ReadingCard } from "./components/ReadingCard";
+import { DeepReadingModal } from "./components/DeepReadingModal";
 import { generateNatalPrompt, generateWeeklyPrompt } from "./lib/ai-prompts";
 import { findGlobalAspects } from "./lib/aspects";
 import { downloadBackup, parseBackup } from "./lib/backup";
 import { calculateNatalChart, calculateWeek, currentLocalISODate, EPHEMERIS_MODEL_VERSION, formatDateISO, formatWeekRange, getMondayISO, PLANETS } from "./lib/ephemeris";
 import { createWeeklyReadings, weeklyLead } from "./lib/readings";
-import { getTextoSol, getTextoLua, getTextoAscendente, ASCENDENTE_GENERICO } from "./lib/signos-textos";
 import {
   clearLocalData, clearSavedAiReading, loadProfile, loadSavedAiReading,
   loadWeeklyBundle, saveAiReading, saveProfile, saveWeeklyBundle,
@@ -19,7 +19,7 @@ import type { BirthProfile, DailyEphemeris, WeeklyBundle } from "./lib/types";
 
 type TabId = "today" | "map" | "week" | "profile";
 const NAV_ITEMS: { id: TabId; label: string; icon: typeof Sun }[] = [
-  { id: "today", label: "Início", icon: Sun },
+  { id: "today", label: "Hoje", icon: Sun },
   { id: "map", label: "Meu mapa", icon: Orbit },
   { id: "week", label: "Semana", icon: CalendarDays },
   { id: "profile", label: "Perfil", icon: Map },
@@ -89,7 +89,9 @@ function App() {
   const [success, setSuccess] = useState("");
   const [isRecalculating, setIsRecalculating] = useState(false);
   const [installEvent, setInstallEvent] = useState<Event | null>(null);
+  const [isDeepReadingOpen, setIsDeepReadingOpen] = useState(false);
 
+  // Estados para o Gerador de Prompts e Leitura Guardada da IA
   const [aiReadingText, setAiReadingText] = useState<string>(() => loadSavedAiReading());
   const [inputAiText, setInputAiText] = useState<string>("");
   const [isEditingAi, setIsEditingAi] = useState<boolean>(false);
@@ -143,7 +145,7 @@ function App() {
       setProfile(nextProfile);
       setSelectedDate(currentLocalISODate());
       setTab("today");
-      setSuccess("Mapa calculado com sucesso neste aparelho.");
+      setSuccess("Perfil salvo neste aparelho. Sua semana está sendo calculada.");
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Não foi possível salvar o perfil.");
     }
@@ -233,12 +235,10 @@ function App() {
       <main className="onboarding-shell">
         <div className="onboarding-brand"><BrandMark /><span>SEU CÉU</span></div>
         <div className="onboarding-copy">
-          <span className="eyebrow"><Sparkles size={14} aria-hidden="true" /> LEITURA ASTROLÓGICA PESSOAL</span>
-          <h1>Descubra o céu<br /><em>do momento em que você nasceu.</em></h1>
-          <p>
-            Preencha seus dados abaixo para revelar imediatamente os seus <strong>três pilares essenciais</strong> — <strong>Sol</strong> (sua essência), <strong>Lua</strong> (suas emoções) e <strong>Ascendente</strong> (sua expressão no mundo) — com precisão astronômica calculada direto no seu aparelho.
-          </p>
-          <div className="onboarding-promise"><ShieldCheck size={17} aria-hidden="true" /><span>100% privado: sem cadastro e sem enviar seus dados para servidores ou IA.</span></div>
+          <span className="eyebrow"><Sparkles size={14} aria-hidden="true" /> UM GUIA PARA A SUA SEMANA</span>
+          <h1>O céu muda.<br /><em>Seu ponto de partida também.</em></h1>
+          <p>Uma leitura astrológica pessoal, montada com posições calculadas no seu aparelho — com espaço para incertezas, sem respostas inventadas.</p>
+          <div className="onboarding-promise"><ShieldCheck size={17} aria-hidden="true" /><span>Sem conta. Sem enviar seus dados natais a uma API ou IA.</span></div>
         </div>
         <section className="onboarding-form-panel"><ProfileForm onSave={handleSaveProfile} /></section>
         {error && <div className="toast toast--error" role="alert">{error}</div>}
@@ -252,19 +252,6 @@ function App() {
   const shortRange = formatWeekRange(weekStart);
   const selectedDayLabel = selectedDate === todayISO ? "HOJE" : dayName(selectedDate).toUpperCase();
   const birthTimeLabel = profile.birthTimeAccuracy === "unknown" ? "Horário desconhecido" : `${profile.birthTimeAccuracy === "approximate" ? "Aprox." : "Exato"} · ${profile.birthTime ?? ""}`;
-
-  // Recuperação segura dos textos dos três pilares
-  const sunSign = bundle?.natal.sun?.sign;
-  const moonSign = bundle?.natal.moon?.sign;
-  const ascSign = bundle?.natal.ascendant?.sign;
-
-  const solInfo = sunSign ? getTextoSol(sunSign) : null;
-  const luaInfo = moonSign ? getTextoLua(moonSign) : null;
-  const ascInfo = ascSign ? getTextoAscendente(ascSign) : null;
-
-  const solTextoFinal = solInfo?.completo || (sunSign ? `O Sol em ${sunSign} representa a sua essência vital, a forma como expressa a sua individualidade e onde busca propósito e realização pessoal.` : null);
-  const luaTextoFinal = luaInfo?.completo || (moonSign ? `A Lua em ${moonSign} retrata o seu mundo emocional, as suas reações instintivas e a forma como procura segurança interna.` : null);
-  const ascTextoFinal = ascInfo?.completo || (ascSign ? `O Ascendente em ${ascSign} indica a sua porta de entrada no mundo, a primeira impressão que transmite e a forma como aborda novos começos.` : null);
 
   return (
     <div className="app-shell">
@@ -290,92 +277,13 @@ function App() {
           <>
             <section className="greeting-block">
               <div>
-                <span className="eyebrow">SEU MAPA PESSOAL</span>
+                <span className="eyebrow">{formatDateISO(todayISO, { weekday: "long", day: "numeric", month: "long" }).toUpperCase()}</span>
                 <h1>Olá, {firstName(profile.name)}<span className="greeting-period">.</span></h1>
-                <p>Confira os três pilares essenciais calculados do seu nascimento.</p>
+                <p>Seu céu de {shortRange}</p>
               </div>
-              <button className="icon-button" aria-label="Recalcular mapa" title="Recalcular mapa" onClick={recalculate} disabled={isRecalculating}>
+              <button className="icon-button" aria-label="Recalcular a semana" title="Recalcular a semana" onClick={recalculate} disabled={isRecalculating}>
                 <RefreshCw className={isRecalculating ? "spin" : ""} size={18} />
               </button>
-            </section>
-
-            {/* CARTÕES DOS TRÊS PILARES NO TOPO */}
-            <section className="section-block" style={{ marginTop: "0.5rem" }}>
-              <div className="section-heading-row">
-                <SectionHeading eyebrow="RESUMO DOS PILARES" title="Três referências" />
-                <button className="text-link" onClick={() => setTab("map")}>Ver mapa completo <ChevronRight size={15} /></button>
-              </div>
-              <div className="sign-summary">
-                <SignTile label="Sol" position={bundle?.natal.sun ?? null} icon={<Sun size={17} />} />
-                <SignTile label="Lua" position={bundle?.natal.moon ?? null} icon={<Moon size={17} />} />
-                <SignTile label="Ascendente" position={bundle?.natal.ascendant ?? null} icon={<Orbit size={17} />} />
-              </div>
-              <p className="tiny-note">O Ascendente é calculado com base na data, hora e coordenadas geográficas informadas.</p>
-            </section>
-
-            {/* INTERPRETAÇÕES DIRETAS DOS TRÊS PILARES */}
-            <section className="section-block" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              {sunSign && (
-                <div style={{ background: "rgba(255,255,255,0.03)", padding: "1.25rem", borderRadius: "14px", borderLeft: "4px solid #f0c674" }}>
-                  <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "1.05rem", marginBottom: "0.5rem", color: "#f0c674" }}>
-                    <Sun size={18} /> Essência — Sol em {sunSign}
-                  </h3>
-                  <p style={{ fontSize: "0.93rem", lineHeight: 1.65, opacity: 0.9, margin: 0 }}>{solTextoFinal}</p>
-                </div>
-              )}
-
-              {moonSign && (
-                <div style={{ background: "rgba(255,255,255,0.03)", padding: "1.25rem", borderRadius: "14px", borderLeft: "4px solid #81a1c1" }}>
-                  <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "1.05rem", marginBottom: "0.5rem", color: "#81a1c1" }}>
-                    <Moon size={18} /> Mundo Emocional — Lua em {moonSign}
-                  </h3>
-                  <p style={{ fontSize: "0.93rem", lineHeight: 1.65, opacity: 0.9, margin: 0 }}>{luaTextoFinal}</p>
-                </div>
-              )}
-
-              <div style={{ background: "rgba(255,255,255,0.03)", padding: "1.25rem", borderRadius: "14px", borderLeft: "4px solid #b48ead" }}>
-                <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "1.05rem", marginBottom: "0.5rem", color: "#b48ead" }}>
-                  <Compass size={18} /> Apresentação ao Mundo — {ascSign ? `Ascendente em ${ascSign}` : "Ascendente"}
-                </h3>
-                {ascSign ? (
-                  <p style={{ fontSize: "0.93rem", lineHeight: 1.65, opacity: 0.9, margin: 0 }}>{ascTextoFinal}</p>
-                ) : (
-                  <div>
-                    <p style={{ fontSize: "0.93rem", lineHeight: 1.65, opacity: 0.9, marginBottom: "0.75rem" }}>
-                      {ASCENDENTE_GENERICO.o_que_e} {ASCENDENTE_GENERICO.motivo}
-                    </p>
-                    <div style={{ background: "rgba(180, 141, 173, 0.1)", padding: "0.75rem", borderRadius: "8px", fontSize: "0.88rem", color: "#ebcb8b" }}>
-                      💡 {ASCENDENTE_GENERICO.alternativa}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* BOTÃO DE TRANSIÇÃO INATIVO (PARA TESTES) */}
-              <div style={{ marginTop: "0.5rem", textAlign: "center" }}>
-                <button
-                  type="button"
-                  disabled
-                  title="Em breve: acesso completo à jornada"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "0.5rem",
-                    width: "100%",
-                    background: "rgba(255, 255, 255, 0.04)",
-                    color: "#8e8a9e",
-                    border: "1px dashed rgba(240, 198, 116, 0.35)",
-                    padding: "0.95rem 1.25rem",
-                    borderRadius: "12px",
-                    fontWeight: 600,
-                    fontSize: "0.95rem",
-                    cursor: "not-allowed",
-                  }}
-                >
-                  <Lock size={16} /> Começar sua jornada (Em breve)
-                </button>
-              </div>
             </section>
 
             <section className="hero-reading">
@@ -396,6 +304,41 @@ function App() {
                 <ReadingCard reading={selectedReading} />
               </section>
             )}
+
+            <section className="section-block">
+              <div className="section-heading-row">
+                <SectionHeading eyebrow="DO SEU MAPA" title="Três referências" />
+                <button className="text-link" onClick={() => setTab("map")}>Ver mapa <ChevronRight size={15} /></button>
+              </div>
+              <div className="sign-summary">
+                <SignTile label="Sol" position={bundle?.natal.sun ?? null} icon={<Sun size={17} />} />
+                <SignTile label="Lua" position={bundle?.natal.moon ?? null} icon={<Moon size={17} />} />
+                <SignTile label="Ascendente" position={bundle?.natal.ascendant ?? null} icon={<Orbit size={17} />} />
+              </div>
+              <p className="tiny-note">O Ascendente é calculado com base na data, hora e coordenadas geográficas informadas.</p>
+              
+              <div style={{ marginTop: "1rem", textAlign: "center" }}>
+                <button
+                  onClick={() => setIsDeepReadingOpen(true)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    background: "linear-gradient(135deg, #f0c674 0%, #d0a654 100%)",
+                    color: "#161622",
+                    border: "none",
+                    padding: "0.75rem 1.25rem",
+                    borderRadius: "12px",
+                    fontWeight: 600,
+                    fontSize: "0.95rem",
+                    cursor: "pointer",
+                    boxShadow: "0 4px 12px rgba(240, 198, 116, 0.2)"
+                  }}
+                >
+                  <Sparkles size={16} /> Ver Leitura Aprofundada do Mapa
+                </button>
+              </div>
+            </section>
 
             <section className="section-block sky-section">
               <SectionHeading eyebrow="MOVIMENTO COMPARTILHADO" title="O céu em movimento" />
@@ -572,6 +515,14 @@ function App() {
           </button>
         ))}
       </nav>
+
+      {isDeepReadingOpen && (
+        <DeepReadingModal
+          profile={profile}
+          natal={bundle?.natal ?? null}
+          onClose={() => setIsDeepReadingOpen(false)}
+        />
+      )}
     </div>
   );
 }
