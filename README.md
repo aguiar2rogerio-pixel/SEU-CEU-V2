@@ -5,10 +5,11 @@ PWA de astrologia semanal, pensado para celular e para funcionar sem conta. O pe
 ## O que esta primeira versão faz
 
 - Calcula posições geocêntricas tropicais do Sol, Lua e planetas no próprio dispositivo com [Astronomy Engine](https://github.com/cosinekitty/astronomy), biblioteca de código aberto sob licença MIT. A biblioteca declara precisão astronômica de até aproximadamente 1 minuto de arco; isso não torna as interpretações astrológicas ciência ou previsão garantida.
-- Cruza os trânsitos de segunda a domingo com posições natais e cria textos por regras transparentes. **Não usa IA e não envia dados natais a uma API.** Não há custo por consulta a fornecedor externo.
+- Calcula o Ascendente a partir do horário e das coordenadas do local de nascimento; o aplicativo não calcula casas nesta versão.
+- Cruza os trânsitos de segunda a domingo com posições natais e cria textos por regras transparentes. **Não usa IA e não envia nome, data ou horário de nascimento para uma API.** O seletor de município consulta a lista oficial do IBGE pelo estado escolhido.
 - Mostra conjunções, ângulos principais e movimentos retrógrados calculados.
-- Se a pessoa não souber o horário, usa 12h somente como referência, não exibe Lua natal e sinaliza a limitação. Se o horário for aproximado, o app também identifica a leitura como estimativa.
-- Não calcula Ascendente nem casas nesta primeira versão. Cidade é opcional e serve somente como anotação; o fuso de nascimento informado é usado para converter data e hora.
+- Se a pessoa não souber o horário, usa 12h somente como referência para os demais planetas e deixa Lua e Ascendente sem confirmação. Se o horário for aproximado, o app sinaliza que resultados sensíveis à hora podem variar.
+- Depois do cadastro, apresenta Sol, Lua e Ascendente e suas interpretações na própria página. O botão de acesso gratuito de teste libera as áreas restantes sem checkout ou cobrança; essa autorização local não representa uma compra.
 - Pode ser instalado na tela inicial. Após o primeiro acesso com internet, o service worker gerado pelo Workbox guarda os arquivos do aplicativo e os textos/leituras já salvos podem ser consultados offline.
 - Permite exportar e importar um backup JSON do perfil e da última semana.
 
@@ -18,9 +19,9 @@ O app não tem login, banco de usuários ou sincronização. Ele guarda o perfil
 
 ## Como usar e fazer uma cópia
 
-1. Abra o app e informe nome, data e o que souber sobre o horário.
-2. Escolha o fuso do local de nascimento. O app sugere o fuso atual do aparelho; confirme ou altere se nasceu em outro lugar.
-3. O cálculo aparece no próprio aparelho. A aba **Semana** permite escolher cada dia; **Meu mapa** mostra as posições usadas; **Perfil** permite corrigir os dados.
+1. Abra o app e informe nome, data, município e o que souber sobre o horário; escolha também o fuso do local de nascimento.
+2. Confira os três pilares e as interpretações apresentados após o cadastro. Se não souber o horário, Lua e Ascendente ficam sem confirmação.
+3. Toque em **Acessar o restante do aplicativo** para liberar gratuitamente a versão de teste neste aparelho. Depois disso, **Hoje**, **Meu mapa**, **Semana** e **Perfil** ficam disponíveis.
 4. Em **Perfil → Exportar backup**, salve o arquivo JSON. Para transferir seus dados, abra o Seu Céu no outro aparelho e restaure esse arquivo.
 5. Só apague os dados locais depois de confirmar que seu backup está guardado.
 
@@ -41,7 +42,7 @@ Os mapas e trânsitos usam longitude eclíptica tropical **geocêntrica** (vista
 
 ## Teste da versão publicada (sem Preview)
 
-Depois que o GitHub Actions concluir a publicação, acesse https://aguiar2rogerio-pixel.github.io/SEU-CEU-V2/ para testar o aplicativo. Confira o cadastro, a semana, o mapa, exportação/restauração do backup, atualização após recarregar a página e abertura offline depois do primeiro acesso com conexão. O perfil de teste continua apenas no navegador usado para esse teste.
+Depois que o GitHub Actions concluir a publicação, acesse https://aguiar2rogerio-pixel.github.io/SEU-CEU-V2/ para testar o aplicativo. Confira o cadastro, a página dos três pilares, o botão gratuito que libera o restante do app, a semana, o mapa, exportação/restauração do backup e abertura offline depois do primeiro acesso com conexão. O perfil e a liberação de teste ficam apenas no navegador usado para esse teste.
 
 ## Para executar no computador
 

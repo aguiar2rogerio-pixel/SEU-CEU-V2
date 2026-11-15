@@ -3,6 +3,34 @@ import type { BirthProfile, WeeklyBundle } from "./types";
 const PROFILE_KEY = "seu_ceu_profile";
 const BUNDLE_KEY = "seu_ceu_weekly_bundle";
 const AI_READING_KEY = "seu_ceu_saved_ai_reading";
+const TEST_ACCESS_KEY = "seu_ceu_v2_test_access";
+
+// Liberação apenas para o período de teste, salva neste aparelho.
+// Não substitui uma confirmação de compra; uma futura integração deverá usar uma autorização verificada.
+export function loadTestAccess(): boolean {
+  try {
+    return localStorage.getItem(TEST_ACCESS_KEY) === "granted";
+  } catch {
+    return false;
+  }
+}
+
+export function saveTestAccess(): boolean {
+  try {
+    localStorage.setItem(TEST_ACCESS_KEY, "granted");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function clearTestAccess(): void {
+  try {
+    localStorage.removeItem(TEST_ACCESS_KEY);
+  } catch (error) {
+    console.error("Erro ao remover o acesso de teste:", error);
+  }
+}
 
 // ------------------------------
 // PERFIL DO UTILIZADOR
@@ -85,6 +113,7 @@ export function clearLocalData(): void {
     localStorage.removeItem(PROFILE_KEY);
     localStorage.removeItem(BUNDLE_KEY);
     localStorage.removeItem(AI_READING_KEY);
+    localStorage.removeItem(TEST_ACCESS_KEY);
   } catch (error) {
     console.error("Erro ao apagar dados locais:", error);
     throw new Error("Não foi possível apagar os dados do navegador.");

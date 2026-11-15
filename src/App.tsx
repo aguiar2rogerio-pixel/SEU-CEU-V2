@@ -5,19 +5,19 @@ import {
 } from "lucide-react";
 import { ProfileForm } from "./components/ProfileForm";
 import { ReadingCard } from "./components/ReadingCard";
-import { DeepReadingModal } from "./components/DeepReadingModal";
+import { PillarsPreview } from "./components/PillarsPreview";
 import { generateNatalPrompt, generateWeeklyPrompt } from "./lib/ai-prompts";
 import { findGlobalAspects } from "./lib/aspects";
 import { downloadBackup, parseBackup } from "./lib/backup";
 import { calculateNatalChart, calculateWeek, currentLocalISODate, EPHEMERIS_MODEL_VERSION, formatDateISO, formatWeekRange, getMondayISO, PLANETS } from "./lib/ephemeris";
 import { createWeeklyReadings, weeklyLead } from "./lib/readings";
 import {
-  clearLocalData, clearSavedAiReading, loadProfile, loadSavedAiReading,
-  loadWeeklyBundle, saveAiReading, saveProfile, saveWeeklyBundle,
+  clearLocalData, clearSavedAiReading, clearTestAccess, loadProfile, loadSavedAiReading,
+  loadTestAccess, loadWeeklyBundle, saveAiReading, saveProfile, saveTestAccess, saveWeeklyBundle,
 } from "./lib/storage";
 import type { BirthProfile, DailyEphemeris, WeeklyBundle } from "./lib/types";
 
-type TabId = "today" | "map" | "week" | "profile";
+type TabId = "pillars" | "today" | "map" | "week" | "profile";
 const NAV_ITEMS: { id: TabId; label: string; icon: typeof Sun }[] = [
   { id: "today", label: "Hoje", icon: Sun },
   { id: "map", label: "Meu mapa", icon: Orbit },
@@ -83,13 +83,13 @@ function App() {
   const online = useOnlineStatus();
   const [profile, setProfile] = useState<BirthProfile | null>(() => loadProfile());
   const [bundle, setBundle] = useState<WeeklyBundle | null>(null);
-  const [tab, setTab] = useState<TabId>("today");
+  const [hasTestAccess, setHasTestAccess] = useState(() => loadTestAccess());
+  const [tab, setTab] = useState<TabId>(() => loadTestAccess() ? "today" : "pillars");
   const [selectedDate, setSelectedDate] = useState(currentLocalISODate());
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isRecalculating, setIsRecalculating] = useState(false);
   const [installEvent, setInstallEvent] = useState<Event | null>(null);
-  const [isDeepReadingOpen, setIsDeepReadingOpen] = useState(false);
 
   // Estados para o Gerador de Prompts e Leitura Guardada da IA
   const [aiReadingText, setAiReadingText] = useState<string>(() => loadSavedAiReading());
@@ -138,17 +138,35 @@ function App() {
   const notice = profile ? accuracyNotice(profile) : null;
 
   function handleSaveProfile(nextProfile: BirthProfile) {
+    const alreadyHadProfile = profile !== null;
     setError("");
     setSuccess("");
     try {
       saveProfile(nextProfile);
       setProfile(nextProfile);
       setSelectedDate(currentLocalISODate());
-      setTab("today");
-      setSuccess("Perfil salvo neste aparelho. Sua semana está sendo calculada.");
+      if (alreadyHadProfile) {
+        setTab(hasTestAccess ? "profile" : "pillars");
+        setSuccess("Perfil atualizado neste aparelho. Seu mapa está sendo recalculado.");
+      } else {
+        clearTestAccess();
+        setHasTestAccess(false);
+        setTab("pillars");
+        setSuccess("Perfil salvo neste aparelho. Seus três pilares estão sendo calculados.");
+      }
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Não foi possível salvar o perfil.");
     }
+  }
+
+  function handleGrantTestAccess() {
+    const persisted = saveTestAccess();
+    setHasTestAccess(true);
+    setTab("today");
+    setSelectedDate(currentLocalISODate());
+    setSuccess(persisted
+      ? "Acesso gratuito de teste liberado neste aparelho."
+      : "Acesso de teste liberado nesta sessão; talvez não seja mantido se você fechar o aplicativo.");
   }
 
   function recalculate() {
@@ -177,7 +195,7 @@ function App() {
       if (backup.weeklyBundle) saveWeeklyBundle(backup.weeklyBundle);
       setProfile(backup.profile);
       setBundle(backup.weeklyBundle);
-      setTab("today");
+      setTab(hasTestAccess ? "today" : "pillars");
       setSelectedDate(currentLocalISODate());
       setSuccess("Backup restaurado neste aparelho.");
     } catch (importError) {
@@ -192,7 +210,8 @@ function App() {
       setProfile(null);
       setBundle(null);
       setAiReadingText("");
-      setTab("today");
+      setHasTestAccess(false);
+      setTab("pillars");
       setSuccess("");
       setError("");
     } catch (deleteError) {
@@ -235,10 +254,11 @@ function App() {
       <main className="onboarding-shell">
         <div className="onboarding-brand"><BrandMark /><span>SEU CÉU</span></div>
         <div className="onboarding-copy">
-          <span className="eyebrow"><Sparkles size={14} aria-hidden="true" /> UM GUIA PARA A SUA SEMANA</span>
-          <h1>O céu muda.<br /><em>Seu ponto de partida também.</em></h1>
-          <p>Uma leitura astrológica pessoal, montada com posições calculadas no seu aparelho — com espaço para incertezas, sem respostas inventadas.</p>
-          <div className="onboarding-promise"><ShieldCheck size={17} aria-hidden="true" /><span>Sem conta. Sem enviar seus dados natais a uma API ou IA.</span></div>
+          <span className="eyebrow"><Sparkles size={14} aria-hidden="true" /> SEU MAPA PESSOAL</span>
+          <h1>Conheça seus três pilares.<br /><em>Com clareza, sem adivinhações.</em></h1>
+          <p>Informe os dados do seu nascimento para ver Sol, Lua e Ascendente — com a interpretação de cada posição logo depois do cadastro.</p>
+          <p className="onboarding-copy__detail">O horário ajuda a calcular a Lua e o Ascendente. Se não souber, você ainda pode continuar: indicaremos com transparência o que não puder ser confirmado.</p>
+          <div className="onboarding-promise"><ShieldCheck size={17} aria-hidden="true" /><span>Seu nome, data e horário ficam neste aparelho. Não enviamos esses dados a uma IA; a lista de municípios é consultada no IBGE pelo estado escolhido.</span></div>
         </div>
         <section className="onboarding-form-panel"><ProfileForm onSave={handleSaveProfile} /></section>
         {error && <div className="toast toast--error" role="alert">{error}</div>}
@@ -254,9 +274,9 @@ function App() {
   const birthTimeLabel = profile.birthTimeAccuracy === "unknown" ? "Horário desconhecido" : `${profile.birthTimeAccuracy === "approximate" ? "Aprox." : "Exato"} · ${profile.birthTime ?? ""}`;
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${hasTestAccess ? "" : " app-shell--locked"}`}>
       <header className="topbar">
-        <a className="brand" href="#hoje" onClick={(event) => { event.preventDefault(); setTab("today"); }} aria-label="Seu Céu, início">
+        <a className="brand" href="#hoje" onClick={(event) => { event.preventDefault(); setTab(hasTestAccess ? "today" : "pillars"); }} aria-label="Seu Céu, início">
           <BrandMark /><span>SEU CÉU</span>
         </a>
         <div className="topbar-actions">
@@ -269,10 +289,12 @@ function App() {
       {error && <div className="toast toast--error" role="alert"><span>{error}</span><button onClick={() => setError("")} aria-label="Fechar aviso"><X size={16} /></button></div>}
       {success && <div className="toast toast--success" role="status"><Check size={16} /><span>{success}</span><button onClick={() => setSuccess("")} aria-label="Fechar aviso"><X size={16} /></button></div>}
 
-      {notice && <div className="accuracy-banner"><span className="accuracy-banner__icon">i</span><p>{notice}</p><button aria-label="Fechar aviso" onClick={(event) => event.currentTarget.parentElement?.remove()}><X size={16} /></button></div>}
+      {notice && tab !== "pillars" && <div className="accuracy-banner"><span className="accuracy-banner__icon">i</span><p>{notice}</p><button aria-label="Fechar aviso" onClick={(event) => event.currentTarget.parentElement?.remove()}><X size={16} /></button></div>}
       {!online && <div className="offline-banner"><WifiOff size={15} aria-hidden="true" /><span>Sem conexão. Esta semana e seu mapa estão disponíveis porque foram calculados neste aparelho.</span></div>}
 
       <main className="page-content">
+        {tab === "pillars" && <PillarsPreview profile={profile} natal={bundle?.natal ?? null} onUnlock={handleGrantTestAccess} />}
+
         {tab === "today" && (
           <>
             <section className="greeting-block">
@@ -317,25 +339,9 @@ function App() {
               </div>
               <p className="tiny-note">O Ascendente é calculado com base na data, hora e coordenadas geográficas informadas.</p>
               
-              <div style={{ marginTop: "1rem", textAlign: "center" }}>
-                <button
-                  onClick={() => setIsDeepReadingOpen(true)}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    background: "linear-gradient(135deg, #f0c674 0%, #d0a654 100%)",
-                    color: "#161622",
-                    border: "none",
-                    padding: "0.75rem 1.25rem",
-                    borderRadius: "12px",
-                    fontWeight: 600,
-                    fontSize: "0.95rem",
-                    cursor: "pointer",
-                    boxShadow: "0 4px 12px rgba(240, 198, 116, 0.2)"
-                  }}
-                >
-                  <Sparkles size={16} /> Ver Leitura Aprofundada do Mapa
+              <div className="pillars-return-link">
+                <button className="text-link" onClick={() => setTab("pillars")}>
+                  Rever a explicação dos três pilares <ChevronRight size={15} />
                 </button>
               </div>
             </section>
@@ -508,20 +514,14 @@ function App() {
         <footer className="app-footer"><span>SEU CÉU</span><p>Astrologia simbólica para reflexão pessoal. Não substitui orientação profissional.</p></footer>
       </main>
 
-      <nav className="bottom-nav" aria-label="Navegação principal">
-        {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
-          <button key={id} className={`nav-item ${tab === id ? "is-active" : ""}`} onClick={() => setTab(id)} aria-current={tab === id ? "page" : undefined}>
-            <Icon size={20} strokeWidth={tab === id ? 2.2 : 1.7} aria-hidden="true" /><span>{label}</span>
-          </button>
-        ))}
-      </nav>
-
-      {isDeepReadingOpen && (
-        <DeepReadingModal
-          profile={profile}
-          natal={bundle?.natal ?? null}
-          onClose={() => setIsDeepReadingOpen(false)}
-        />
+      {hasTestAccess && (
+        <nav className="bottom-nav" aria-label="Navegação principal">
+          {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
+            <button key={id} className={`nav-item ${tab === id ? "is-active" : ""}`} onClick={() => setTab(id)} aria-current={tab === id ? "page" : undefined}>
+              <Icon size={20} strokeWidth={tab === id ? 2.2 : 1.7} aria-hidden="true" /><span>{label}</span>
+            </button>
+          ))}
+        </nav>
       )}
     </div>
   );

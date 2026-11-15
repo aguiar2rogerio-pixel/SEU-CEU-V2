@@ -23,6 +23,11 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
   const [cities, setCities] = useState<CityRecord[]>([]);
   const [selectedCityId, setSelectedCityId] = useState("");
   const [loadingCities, setLoadingCities] = useState(false);
+  const birthTimeGuidance = birthTimeAccuracy === "exact"
+    ? "O horário exato ajuda a calcular a Lua e o Ascendente com mais segurança."
+    : birthTimeAccuracy === "approximate"
+      ? "Com horário aproximado, posições sensíveis à hora podem variar; a leitura será apresentada como estimativa."
+      : "Não sabe o horário? Tudo bem: você pode continuar. O app deixa Lua e Ascendente sem confirmação quando não puder calculá-los com segurança.";
 
   useEffect(() => {
     let isMounted = true;
@@ -71,6 +76,11 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="profile-form" style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+      <div className="form-intro">
+        <span className="eyebrow">LEITURA GRATUITA NA FASE DE TESTE</span>
+        <h2>{initialProfile ? "Revise seus dados" : "Calcule seus três pilares"}</h2>
+        <p>{initialProfile ? "Ao salvar, o mapa será recalculado neste aparelho." : "Preencha o que souber. O aplicativo informa com clareza quando algum dado não puder ser confirmado."}</p>
+      </div>
       <div>
         <label style={{ display: "block", marginBottom: "0.4rem", fontSize: "0.9rem", fontWeight: 500 }}>Como podemos chamar você?</label>
         <input
@@ -95,7 +105,8 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
       </div>
 
       <div>
-        <label style={{ display: "block", marginBottom: "0.4rem", fontSize: "0.9rem", fontWeight: 500 }}>Precisão do Horário</label>
+        <label style={{ display: "block", marginBottom: "0.4rem", fontSize: "0.9rem", fontWeight: 500 }}>Precisão do horário de nascimento</label>
+        <p className="birth-time-help">O horário é importante para calcular a Lua e o Ascendente. Escolha a opção mais fiel ao que você sabe.</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem" }}>
           {(["exact", "approximate", "unknown"] as const).map((acc) => (
             <button
@@ -117,6 +128,7 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
             </button>
           ))}
         </div>
+        <p className={`birth-time-guidance birth-time-guidance--${birthTimeAccuracy}`} role="status">{birthTimeGuidance}</p>
       </div>
 
       {birthTimeAccuracy !== "unknown" && (
@@ -162,6 +174,7 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
         <label style={{ display: "block", marginBottom: "0.6rem", fontSize: "0.9rem", fontWeight: 600, color: "#f0c674" }}>
           📍 Local de Nascimento (IBGE Oficial)
         </label>
+        <p className="birth-location-help">O município e o horário ajudam o cálculo do Ascendente. A lista de municípios é consultada pelo estado selecionado.</p>
         
         <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "0.75rem" }}>
           <div>

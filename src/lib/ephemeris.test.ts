@@ -26,8 +26,8 @@ describe("efemérides locais", () => {
 
   it("calcula todos os corpos disponíveis e não confirma a Lua sem horário natal", () => {
     const natal = calculateNatalChart(profile);
-    // Conta apenas os planetas, ignorando o campo _meta
-    const planetKeys = Object.keys(natal).filter(key => !key.startsWith('_'));
+    // Conta apenas os planetas, ignorando _meta e a chave opcional do Ascendente.
+    const planetKeys = Object.keys(natal).filter(key => !key.startsWith('_') && key !== "ascendant");
     expect(planetKeys).toHaveLength(PLANETS.length);
     expect(natal.sun?.sign).toBeTruthy();
     expect(natal.moon).toBeNull();
