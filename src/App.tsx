@@ -253,7 +253,7 @@ function App() {
   const selectedDayLabel = selectedDate === todayISO ? "HOJE" : dayName(selectedDate).toUpperCase();
   const birthTimeLabel = profile.birthTimeAccuracy === "unknown" ? "Horário desconhecido" : `${profile.birthTimeAccuracy === "approximate" ? "Aprox." : "Exato"} · ${profile.birthTime ?? ""}`;
 
-  // Preparação dos textos dos Três Pilares
+  // Recuperação segura dos textos dos três pilares
   const sunSign = bundle?.natal.sun?.sign;
   const moonSign = bundle?.natal.moon?.sign;
   const ascSign = bundle?.natal.ascendant?.sign;
@@ -288,22 +288,21 @@ function App() {
       <main className="page-content">
         {tab === "today" && (
           <>
-            {/* 1. SAUDAÇÃO DIRETA */}
             <section className="greeting-block">
               <div>
-                <span className="eyebrow">SEU MAPA NATAL</span>
+                <span className="eyebrow">SEU MAPA PESSOAL</span>
                 <h1>Olá, {firstName(profile.name)}<span className="greeting-period">.</span></h1>
-                <p>Confira os três pilares calculados a partir do seu nascimento.</p>
+                <p>Confira os três pilares essenciais calculados do seu nascimento.</p>
               </div>
               <button className="icon-button" aria-label="Recalcular mapa" title="Recalcular mapa" onClick={recalculate} disabled={isRecalculating}>
                 <RefreshCw className={isRecalculating ? "spin" : ""} size={18} />
               </button>
             </section>
 
-            {/* 2. OS TRÊS PILARES (SOL, LUA E ASCENDENTE) */}
+            {/* CARTÕES DOS TRÊS PILARES NO TOPO */}
             <section className="section-block" style={{ marginTop: "0.5rem" }}>
               <div className="section-heading-row">
-                <SectionHeading eyebrow="DO SEU MAPA" title="Três referências" />
+                <SectionHeading eyebrow="RESUMO DOS PILARES" title="Três referências" />
                 <button className="text-link" onClick={() => setTab("map")}>Ver mapa completo <ChevronRight size={15} /></button>
               </div>
               <div className="sign-summary">
@@ -314,7 +313,7 @@ function App() {
               <p className="tiny-note">O Ascendente é calculado com base na data, hora e coordenadas geográficas informadas.</p>
             </section>
 
-            {/* 3. INTERPRETAÇÃO COMPLETA DOS TRÊS PILARES */}
+            {/* INTERPRETAÇÕES DIRETAS DOS TRÊS PILARES */}
             <section className="section-block" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               {sunSign && (
                 <div style={{ background: "rgba(255,255,255,0.03)", padding: "1.25rem", borderRadius: "14px", borderLeft: "4px solid #f0c674" }}>
@@ -352,7 +351,7 @@ function App() {
                 )}
               </div>
 
-              {/* BOTÃO DE TRANSIÇÃO INATIVO (PARA CONFERÊNCIA DE CÁLCULOS E LAYOUT) */}
+              {/* BOTÃO DE TRANSIÇÃO INATIVO (PARA TESTES) */}
               <div style={{ marginTop: "0.5rem", textAlign: "center" }}>
                 <button
                   type="button"
@@ -364,7 +363,7 @@ function App() {
                     justifyContent: "center",
                     gap: "0.5rem",
                     width: "100%",
-                    background: "rgba(255, 255, 255, 0.06)",
+                    background: "rgba(255, 255, 255, 0.04)",
                     color: "#8e8a9e",
                     border: "1px dashed rgba(240, 198, 116, 0.35)",
                     padding: "0.95rem 1.25rem",
@@ -379,7 +378,6 @@ function App() {
               </div>
             </section>
 
-            {/* 4. RESTANTE DA PÁGINA (SEMANA E CÉU EM MOVIMENTO) */}
             <section className="hero-reading">
               <div className="hero-orbit hero-orbit--one" /><div className="hero-orbit hero-orbit--two" />
               <div className="hero-stars"><span /><span /><span /></div>
