@@ -11,13 +11,14 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
   const [name, setName] = useState(initialProfile?.name ?? "");
   const [birthDate, setBirthDate] = useState(initialProfile?.birthDate ?? "");
   
-  const [initialH, initialM] = (initialProfile?.birthTime ?? "12:00").split(":");
-  const [birthHour, setBirthHour] = useState(initialH || "12");
-  const [birthMinute, setBirthMinute] = useState(initialM || "00");
+  const [initialH, initialM] = (initialProfile?.birthTime ?? "").split(":");
+  const [birthHour, setBirthHour] = useState(initialH ?? "");
+  const [birthMinute, setBirthMinute] = useState(initialM ?? "");
 
-  const [birthTimeAccuracy, setBirthTimeAccuracy] = useState<BirthProfile["birthTimeAccuracy"]>(
-    initialProfile?.birthTimeAccuracy ?? "exact"
+  const [birthTimeAccuracy, setBirthTimeAccuracy] = useState<BirthProfile["birthTimeAccuracy"] | "">(
+    initialProfile?.birthTimeAccuracy ?? ""
   );
+  const [birthTimeError, setBirthTimeError] = useState("");
   
   const [stateUf, setStateUf] = useState(initialProfile?.birthState ?? "SP");
   const [cities, setCities] = useState<CityRecord[]>([]);
@@ -27,7 +28,9 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
     ? "O horário exato ajuda a calcular a Lua e o Ascendente com mais segurança."
     : birthTimeAccuracy === "approximate"
       ? "Com horário aproximado, posições sensíveis à hora podem variar; a leitura será apresentada como estimativa."
-      : "Não sabe o horário? Tudo bem: você pode continuar. O app deixa Lua e Ascendente sem confirmação quando não puder calculá-los com segurança.";
+      : birthTimeAccuracy === "unknown"
+        ? "Não sabe o horário? Tudo bem: você pode continuar. O app deixa Lua e Ascendente sem confirmação quando não puder calculá-los com segurança."
+        : "Escolha a opção mais fiel ao que você sabe. Assim evitamos usar um horário presumido.";
 
   useEffect(() => {
     let isMounted = true;
@@ -45,6 +48,17 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (!birthTimeAccuracy) {
+      setBirthTimeError("Escolha se o horário é exato, aproximado ou se você não sabe.");
+      return;
+    }
+    setBirthTimeError("");
+
+    if (birthTimeAccuracy !== "unknown" && (!birthHour || !birthMinute)) {
+      setBirthTimeError("Informe a hora e os minutos, ou escolha “Não sei” se não souber o horário.");
+      return;
+    }
     
     const foundCity = cities.find((c) => c.id === selectedCityId);
     if (!foundCity) {
@@ -106,13 +120,14 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
 
       <div>
         <label style={{ display: "block", marginBottom: "0.4rem", fontSize: "0.9rem", fontWeight: 500 }}>Precisão do horário de nascimento</label>
-        <p className="birth-time-help">O horário é importante para calcular a Lua e o Ascendente. Escolha a opção mais fiel ao que você sabe.</p>
+        <p className="birth-time-help">O horário ajuda a calcular a Lua e o Ascendente. Escolha a opção mais fiel ao que você sabe.</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem" }}>
           {(["exact", "approximate", "unknown"] as const).map((acc) => (
             <button
               key={acc}
               type="button"
-              onClick={() => setBirthTimeAccuracy(acc)}
+              onClick={() => { setBirthTimeAccuracy(acc); setBirthTimeError(""); }}
+              aria-pressed={birthTimeAccuracy === acc}
               style={{
                 padding: "0.6rem",
                 borderRadius: "8px",
@@ -128,6 +143,7 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
             </button>
           ))}
         </div>
+        {birthTimeError && <p className="form-error" role="alert">{birthTimeError}</p>}
         <p className={`birth-time-guidance birth-time-guidance--${birthTimeAccuracy}`} role="status">{birthTimeGuidance}</p>
       </div>
 
@@ -136,10 +152,12 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
           <label style={{ display: "block", marginBottom: "0.4rem", fontSize: "0.9rem", fontWeight: 500 }}>Horário de Nascimento</label>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <select
+              required
               value={birthHour}
               onChange={(e) => setBirthHour(e.target.value)}
               style={{ flex: 1, padding: "0.85rem", borderRadius: "10px", background: "#161622", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", fontSize: "1rem" }}
             >
+              <option value="" disabled>Hora</option>
               {Array.from({ length: 24 }, (_, i) => {
                 const h = String(i).padStart(2, "0");
                 return (
@@ -153,10 +171,12 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
             <span style={{ color: "#f0c674", fontWeight: "bold", fontSize: "1.2rem" }}>:</span>
 
             <select
+              required
               value={birthMinute}
               onChange={(e) => setBirthMinute(e.target.value)}
               style={{ flex: 1, padding: "0.85rem", borderRadius: "10px", background: "#161622", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", fontSize: "1rem" }}
             >
+              <option value="" disabled>Minutos</option>
               {Array.from({ length: 60 }, (_, i) => {
                 const m = String(i).padStart(2, "0");
                 return (

@@ -1,4 +1,4 @@
-import { ArrowRight, Compass, Moon, ShieldCheck, Sun } from "lucide-react";
+import { ArrowRight, CalendarDays, Compass, Moon, Orbit, ShieldCheck, Sparkles, Sun } from "lucide-react";
 import type { ReactNode } from "react";
 import type { BirthProfile, NatalChart, PlanetPosition } from "../lib/types";
 import {
@@ -101,8 +101,8 @@ export function PillarsPreview({ profile, natal, onUnlock }: Props) {
     <section className="pillars-preview" aria-labelledby="pillars-title">
       <header className="page-intro pillars-intro">
         <span className="eyebrow">SEU MAPA PESSOAL</span>
-        <h1 id="pillars-title">Olá, {firstName(profile.name)}. Estes são seus três pilares.</h1>
-        <p>O mapa foi calculado no seu aparelho a partir dos dados informados. Veja primeiro os resultados e, logo abaixo, o que cada posição representa.</p>
+        <h1 id="pillars-title">{firstName(profile.name)}, seu universo tem muito a revelar.</h1>
+        <p>Este é o começo do seu mapa: Sol, Lua e Ascendente, calculados neste aparelho a partir dos dados que você informou. Veja os resultados e a interpretação de cada posição.</p>
       </header>
 
       <div className="pillar-summary-grid" aria-label="Resumo dos três pilares">
@@ -143,12 +143,37 @@ export function PillarsPreview({ profile, natal, onUnlock }: Props) {
         />
       </section>
 
+      <section className="pillars-discover" aria-labelledby="pillars-discover-title">
+        <div className="section-heading">
+          <span className="eyebrow">CONTINUE SUA DESCOBERTA</span>
+          <h2 id="pillars-discover-title">E essa é apenas uma parte do seu mapa.</h2>
+          <p>Depois dos três pilares, você pode explorar outras áreas que já fazem parte do SEU-CEU.</p>
+        </div>
+        <div className="pillars-discover-grid">
+          <article className="pillars-discover-item">
+            <span className="pillars-discover-item__icon"><Sparkles size={18} aria-hidden="true" /></span>
+            <h3>Seu céu de hoje</h3>
+            <p>Veja a leitura do dia e os movimentos astrológicos em relação ao seu mapa.</p>
+          </article>
+          <article className="pillars-discover-item">
+            <span className="pillars-discover-item__icon"><Orbit size={18} aria-hidden="true" /></span>
+            <h3>Meu mapa</h3>
+            <p>Explore outras posições e informações do seu mapa natal.</p>
+          </article>
+          <article className="pillars-discover-item">
+            <span className="pillars-discover-item__icon"><CalendarDays size={18} aria-hidden="true" /></span>
+            <h3>Semana</h3>
+            <p>Acompanhe as leituras e os destaques astrológicos dos próximos dias.</p>
+          </article>
+        </div>
+      </section>
+
       <aside className="pillars-access-card" aria-labelledby="test-access-title">
         <span className="eyebrow"><ShieldCheck size={14} aria-hidden="true" /> ACESSO GRATUITO DE TESTE</span>
-        <h2 id="test-access-title">Quer conhecer o restante do aplicativo?</h2>
-        <p>Durante o teste da V2, as outras áreas ficam liberadas gratuitamente neste aparelho. Não há checkout nem cobrança nesta etapa.</p>
+        <h2 id="test-access-title">Sua jornada pelo SEU-CEU continua agora.</h2>
+        <p>Explore seu mapa, acompanhe seu céu e conheça as outras áreas do aplicativo. Nesta fase de teste, o acesso é gratuito neste aparelho; ainda não há checkout nem cobrança.</p>
         <button className="button button--primary pillars-access-button" type="button" onClick={onUnlock}>
-          Acessar o restante do aplicativo <ArrowRight size={17} aria-hidden="true" />
+          Explorar meu SEU-CEU <ArrowRight size={17} aria-hidden="true" />
         </button>
         <small>Suas informações natais continuam armazenadas neste aparelho.</small>
       </aside>
