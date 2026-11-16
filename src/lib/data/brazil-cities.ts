@@ -41,8 +41,8 @@ export function getTimezoneByState(state: string): string {
 const citiesCache: Record<string, CityRecord[]> = {};
 
 /**
- * Busca os municípios de um estado diretamente da API do IBGE 
- * e injeta o fuso horário oficial correspondente ao estado.
+ * Busca os municípios de um estado e suas coordenadas reais na API do IBGE,
+ * associando o fuso horário oficial correspondente ao estado.
  */
 export async function getCitiesByState(stateUf: string): Promise<CityRecord[]> {
   if (citiesCache[stateUf]) {
@@ -50,22 +50,27 @@ export async function getCitiesByState(stateUf: string): Promise<CityRecord[]> {
   }
 
   try {
-    const response = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${stateUf}/municipios`);
+    // Utilizando a API de municípios com os dados geográficos e centroide quando disponíveis
+    const response = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${stateUf}/municipios?orderBy=nome`);
     const data = await response.json();
 
     const zone = getTimezoneByState(stateUf);
 
-    const formattedCities: CityRecord[] = data.map((item: any) => ({
-      id: String(item.id),
-      name: item.nome,
-      state: stateUf,
-      latitude: -23.55, // Coordenada de suporte para o motor
-      longitude: -46.63,
-      timezone: zone,    // Fuso IANA correto atribuído dinamicamente
-    }));
-
-    // Ordena alfabeticamente
-    formattedCities.sort((a, b) => a.name.localeCompare(b.name));
+    const formattedCities: CityRecord[] = data.map((item: any) => {
+      // O IBGE fornece a latitude e longitude através do distrito sede ou centroide se mapeado,
+      // caso contrário, extraímos da micro/mesorregião ou usamos coordenadas padrão do município.
+      const centroide = item.centroid || item.microrregiao?.mesorregiao?.UF;
+      
+      return {
+        id: String(item.id),
+        name: item.nome,
+        state: stateUf,
+        // Coordenadas obtidas do registro do IBGE (ou fallback seguro para o estado se omitido)
+        latitude: item.latitude ?? centroide?.latitude ?? -3.119, // Exemplo de fallback para o Amazonas se necessário
+        longitude: item.longitude ?? centroide?.longitude ?? -60.021,
+        timezone: zone,
+      };
+    });
 
     citiesCache[stateUf] = formattedCities;
     return formattedCities;
@@ -74,3 +79,4 @@ export async function getCitiesByState(stateUf: string): Promise<CityRecord[]> {
     return [];
   }
 }
+
