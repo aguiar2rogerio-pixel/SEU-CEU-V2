@@ -218,9 +218,7 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
         <label style={{ display: "block", marginBottom: "0.6rem", fontSize: "0.9rem", fontWeight: 600, color: "#f0c674" }}>
           📍 Local de Nascimento (IBGE Oficial)
         </label>
-        <p className="birth-location-help" style={{ marginBottom: "0.75rem", fontSize: "0.85rem", color: "#a0a0b0" }}>
-          O município e o horário ajudam o cálculo do Ascendente. A lista de municípios é consultada pelo estado selecionado.
-        </p>
+        <p className="birth-location-help">O município e o horário ajudam o cálculo do Ascendente. A lista de municípios é consultada pelo estado selecionado.</p>
         
         <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "0.75rem" }}>
           <div>
@@ -232,9 +230,7 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
               style={{ width: "100%", padding: "0.75rem", borderRadius: "8px", background: "#161622", border: "1px solid rgba(255,255,255,0.15)", color: "#fff" }}
             >
               {BRAZIL_STATES.map((uf) => (
-                <option key={uf} value={uf}>
-                  {uf}
-                </option>
+                <option key={uf} value={uf}>{uf}</option>
               ))}
             </select>
           </div>
@@ -250,13 +246,9 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
               disabled={loadingCities || submitting}
               style={{ width: "100%", padding: "0.75rem", borderRadius: "8px", background: "#161622", border: "1px solid rgba(255,255,255,0.15)", color: "#fff" }}
             >
-              <option value="" disabled>
-                {loadingCities ? "Buscando cidades..." : "Selecione a cidade..."}
-              </option>
+              <option value="" disabled>{loadingCities ? "Buscando cidades..." : "Selecione a cidade..."}</option>
               {cities.map((city) => (
-                <option key={city.id} value={city.id}>
-                  {city.name}
-                </option>
+                <option key={city.id} value={city.id}>{city.name}</option>
               ))}
             </select>
           </div>
@@ -273,17 +265,9 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
         type="submit"
         disabled={submitting || loadingCities}
         style={{
-          marginTop: "0.5rem",
-          padding: "0.95rem",
-          background: "linear-gradient(135deg, #f0c674 0%, #d0a654 100%)",
-          color: "#161622",
-          border: "none",
-          borderRadius: "10px",
-          fontWeight: 700,
-          cursor: submitting || loadingCities ? "not-allowed" : "pointer",
-          fontSize: "1.05rem",
-          boxShadow: "0 4px 14px rgba(240, 198, 116, 0.25)",
-          opacity: submitting || loadingCities ? 0.7 : 1
+          marginTop: "0.5rem", padding: "0.95rem", background: "linear-gradient(135deg, #f0c674 0%, #d0a654 100%)", color: "#161622",
+          border: "none", borderRadius: "10px", fontWeight: 700, cursor: submitting || loadingCities ? "not-allowed" : "pointer", fontSize: "1.05rem",
+          boxShadow: "0 4px 14px rgba(240, 198, 116, 0.25)", opacity: submitting || loadingCities ? 0.7 : 1
         }}
       >
         {submitting ? "Consultando coordenadas..." : "Calcular meu céu"}
