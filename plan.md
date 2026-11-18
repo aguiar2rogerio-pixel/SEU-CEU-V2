@@ -26,19 +26,31 @@ Entregar do zero um PWA instalável, confortável no celular e simples de manter
 
 ## Estrutura do projeto
 
-- `src/App.tsx`: cadastro, entrada na tela dos pilares, liberação de teste e navegação entre Hoje, Meu mapa, Semana e Perfil.
-- `src/components/`: formulário de perfil, apresentação dos três pilares, cartões de aspectos/leitura, estados vazios e backup.
+- `src/App.tsx`: estado compartilhado, cálculo semanal, entrada, acesso de teste, navegação e ações do aplicativo.
+- `src/components/`: telas independentes `TodayPage`, `MapPage`, `WeekPage` e `ProfilePage`, além de cadastro, três pilares, cabeçalhos e cartões reutilizáveis; as ações de persistência e navegação são passadas por props.
 - `src/lib/ephemeris.ts`: cálculo de posições celestes e semana local.
 - `src/lib/aspects.ts`: normalização angular, identificação de aspectos e retrogradação.
 - `src/lib/readings.ts`: catálogo de textos e regras de interpretação em português.
 - `src/lib/signos-textos.ts`: interpretações editoriais de Sol, Lua e Ascendente usadas diretamente na tela pós-cadastro.
-- `src/lib/storage.ts`: leitura, validação, migração de versão e salvamento local.
-- `src/lib/backup.ts`: exportação/importação validada do backup JSON.
+- `src/lib/storage.ts`: leitura, validação de fronteira e salvamento local, incluindo restauração do perfil e pacote semanal com rollback em caso de falha.
+- `src/lib/profile-validation.ts` e `src/lib/weekly-bundle.ts`: validação canônica dos dados persistidos/restaurados e compatibilidade do pacote semanal.
+- `src/lib/formatters.ts`: formatação comum de primeiro nome e graus.
+- `src/lib/backup.ts`: exportação/importação do backup JSON versão 1, mantendo o formato existente.
 - `src/styles.css`: tema, tipografia responsiva, navegação inferior e acessibilidade.
 - `public/manifest.webmanifest`, `public/icons/`: contrato instalável e ícones.
 - `public/manus-routes.json`: lista sincronizada das rotas do app.
 - `README.md`: guia passo a passo de uso, instalação, edição de textos, atualização e cópia de segurança.
 - `TODO.md`: critérios completos dos entregáveis.
+
+## Manutenção incremental antes da fase 2
+
+- Preservar as fórmulas, coordenadas, fusos, textos, aparência e sequência já validados pelo usuário; esta etapa trata da confiabilidade do cache e da organização do código.
+- [x] Centralizar a validação do pacote semanal em uma função de produção compartilhada pelo app e pelos testes. O cache e a restauração só reaproveitam semana com estrutura válida, perfil correspondente, semana atual e versão do motor igual à atual; versões antigas são recalculadas localmente.
+- [x] Extrair a apresentação das abas do `App.tsx` em componentes com props explícitas, mantendo no componente raiz o estado compartilhado e as ações; a navegação e o conteúdo das telas foram preservados.
+- [x] Reutilizar `planetName` e formatadores comuns onde correspondem ao mesmo comportamento; manter componentes de conteúdo com responsabilidades diferentes.
+- [x] Confirmar que `DeepReadingModal` não tinha importadores e removê-lo; preservar os estilos específicos das páginas.
+- [x] Validar dados persistidos e importados, manter o formato de backup suportado e reverter a gravação de perfil/pacote se a restauração falhar.
+- [x] Configurar o workflow do GitHub Actions para executar a suíte antes do build/deploy; a origem do Pages e a branch `main` não foram alteradas.
 
 ## Direção visual
 

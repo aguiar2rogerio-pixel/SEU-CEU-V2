@@ -27,13 +27,14 @@ O app não tem login, banco de usuários ou sincronização. Ele guarda o perfil
 
 ## Como manter o projeto no GitHub
 
-O fluxo usa somente a branch `main`: uma alteração salva nessa branch aciona o GitHub Actions, que compila o projeto e publica a pasta `dist` no GitHub Pages. Para uma alteração simples de texto, abra `src/lib/readings.ts` no GitHub, use o botão de edição e confirme o commit em `main`. O projeto deve ser atualizado por pequenas mudanças; evite editar `src/lib/ephemeris.ts` ou `src/lib/aspects.ts` sem revisar também os testes.
+O fluxo usa somente a branch `main`: uma alteração salva nessa branch aciona o GitHub Actions, que instala dependências, executa `pnpm test`, compila o projeto e publica a pasta `dist` no GitHub Pages. Para uma alteração simples de texto, abra `src/lib/readings.ts` no GitHub, use o botão de edição e confirme o commit em `main`. O projeto deve ser atualizado por pequenas mudanças; evite editar `src/lib/ephemeris.ts` ou `src/lib/aspects.ts` sem revisar também os testes.
 
 - **Textos e tom das leituras:** `src/lib/readings.ts`.
-- **Avisos, formulário de nascimento e precisão:** `src/components/ProfileForm.tsx` e `src/App.tsx`.
+- **Cadastro e precisão:** `src/components/ProfileForm.tsx`.
+- **Telas Hoje, Meu mapa, Semana e Perfil:** `src/components/TodayPage.tsx`, `MapPage.tsx`, `WeekPage.tsx` e `ProfilePage.tsx`; estado compartilhado e navegação ficam em `src/App.tsx`.
 - **Cores, espaçamento e telas:** `src/styles.css`.
 - **Cálculos astrológicos/efemérides:** `src/lib/ephemeris.ts` e `src/lib/aspects.ts`.
-- **Dados locais e backup:** `src/lib/storage.ts` e `src/lib/backup.ts`.
+- **Dados locais, validação e backup:** `src/lib/storage.ts`, `profile-validation.ts`, `weekly-bundle.ts` e `backup.ts`.
 - **Ícone e instalação:** `public/icons/` e `public/manifest.webmanifest`.
 
 ## Convenção usada nas posições
@@ -53,10 +54,11 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Para validar antes de publicar:
+Para validar antes de publicar (o workflow também executa os testes antes do deploy):
 
 ```bash
 pnpm test
+pnpm check
 pnpm build
 ```
 

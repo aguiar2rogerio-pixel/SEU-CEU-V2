@@ -1,4 +1,6 @@
 import type { BirthProfile, WeeklyBundle } from "./types";
+import { isWeeklyBundle } from "./weekly-bundle";
+import { parseBirthProfile } from "./profile-validation";
 
 export type BackupData = {
   version: 1;
@@ -6,27 +8,6 @@ export type BackupData = {
   profile: BirthProfile;
   weeklyBundle: WeeklyBundle | null;
 };
-
-// Validador simples de estrutura do perfil
-function isValidProfile(profile: any): profile is BirthProfile {
-  return (
-    profile &&
-    typeof profile === "object" &&
-    typeof profile.name === "string" &&
-    typeof profile.birthDate === "string"
-  );
-}
-
-// Validador simples da estrutura do pacote semanal
-function isValidWeeklyBundle(bundle: any): bundle is WeeklyBundle {
-  return (
-    bundle === null ||
-    (bundle &&
-      typeof bundle === "object" &&
-      typeof bundle.weekStart === "string" &&
-      Array.isArray(bundle.days))
-  );
-}
 
 export function createBackup(
   profile: BirthProfile,
@@ -74,18 +55,19 @@ export function parseBackup(text: string): BackupData {
     throw new Error("Versão de backup não suportada.");
   }
 
-  if (!isValidProfile(parsed.profile)) {
+  const profile = parseBirthProfile(parsed.profile);
+  if (!profile) {
     throw new Error("O arquivo de backup não contém um perfil válido.");
   }
 
-  const weeklyBundle = isValidWeeklyBundle(parsed.weeklyBundle)
+  const weeklyBundle = parsed.weeklyBundle === null || isWeeklyBundle(parsed.weeklyBundle)
     ? parsed.weeklyBundle
     : null;
 
   return {
     version: 1,
     exportedAt: parsed.exportedAt || new Date().toISOString(),
-    profile: parsed.profile,
+    profile,
     weeklyBundle,
   };
 }

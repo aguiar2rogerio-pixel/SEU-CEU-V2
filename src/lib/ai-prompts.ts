@@ -1,5 +1,6 @@
 import type { BirthProfile, DailyEphemeris, NatalChart } from "./types";
-import { PLANETS } from "./ephemeris";
+import { PLANETS, planetName } from "./ephemeris";
+import { formatDegrees } from "./formatters";
 
 // Generates a complete prompt for a Natal Chart reading
 export function generateNatalPrompt(profile: BirthProfile, natal: NatalChart | null): string {
@@ -7,13 +8,13 @@ export function generateNatalPrompt(profile: BirthProfile, natal: NatalChart | n
 
   const planetsList = PLANETS.map((p) => {
     const pos = natal[p.id];
-    return pos ? `- ${p.name}: ${pos.sign} (${pos.degree.toFixed(1)}°)` : null;
+    return pos ? `- ${p.name}: ${pos.sign} (${formatDegrees(pos.degree)})` : null;
   })
     .filter(Boolean)
     .join("\n");
 
   const ascendantInfo = natal.ascendant
-    ? `- Ascendente: ${natal.ascendant.sign} (${natal.ascendant.degree.toFixed(1)}°)`
+    ? `- Ascendente: ${natal.ascendant.sign} (${formatDegrees(natal.ascendant.degree)})`
     : "- Ascendente: Não disponível (horário de nascimento não informado)";
 
   return `Atue como um astrólogo experiente, acolhedor e focado em autoconhecimento prático. 
@@ -52,16 +53,16 @@ export function generateWeeklyPrompt(
     ? selectedDay.globalAspects
         .slice(0, 4)
         .map((a) => {
-          const p1 = PLANETS.find((p) => p.id === a.firstPlanet)?.name || a.firstPlanet;
-          const p2 = PLANETS.find((p) => p.id === a.secondPlanet)?.name || a.secondPlanet;
-          return `- ${p1} em ${a.type} com ${p2} (Orbe: ${a.orb.toFixed(1)}°)`;
+          const p1 = planetName(a.firstPlanet);
+          const p2 = planetName(a.secondPlanet);
+          return `- ${p1} em ${a.type} com ${p2} (Orbe: ${formatDegrees(a.orb)})`;
         })
         .join("\n")
     : "- Nenhum aspecto maior de destaque hoje.";
 
   const retrogrades = selectedDay.retrogrades.length
     ? selectedDay.retrogrades
-        .map((id) => PLANETS.find((p) => p.id === id)?.name || id)
+        .map((id) => planetName(id))
         .join(", ")
     : "Nenhum no momento.";
 

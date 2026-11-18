@@ -100,11 +100,3 @@ export interface WeeklyBundle {
   days: DailyEphemeris[];
   readings: DailyReading[];
 }
-
-export interface BackupFile {
-  app: "Seu Céu";
-  backupVersion: 1;
-  exportedAt: string;
-  profile: BirthProfile;
-  weeklyBundle: WeeklyBundle | null;
-}

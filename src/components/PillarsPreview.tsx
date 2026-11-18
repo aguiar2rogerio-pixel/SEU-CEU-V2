@@ -1,6 +1,7 @@
 import { ArrowRight, CalendarDays, Compass, Moon, Orbit, ShieldCheck, Sparkles, Sun } from "lucide-react";
 import type { ReactNode } from "react";
 import type { BirthProfile, NatalChart, PlanetPosition } from "../lib/types";
+import { firstName, formatDegrees } from "../lib/formatters";
 import {
   ASCENDENTE_GENERICO,
   getTextoAscendente,
@@ -33,17 +34,13 @@ type ReadingCardProps = {
   unavailableText: string;
 };
 
-function firstName(name: string): string {
-  return name.trim().split(/\s+/)[0] || "você";
-}
-
 function SummaryTile({ kind, label, position, icon, unavailableLabel }: SummaryTileProps) {
   return (
     <div className={`pillar-summary-tile pillar-summary-tile--${kind}`}>
       <span className="pillar-summary-tile__icon">{icon}</span>
       <span className="pillar-summary-tile__label">{label}</span>
       <strong>{position?.sign ?? "Sem confirmação"}</strong>
-      <small>{position ? `${position.degree.toFixed(1)}°` : unavailableLabel}</small>
+      <small>{position ? formatDegrees(position.degree) : unavailableLabel}</small>
     </div>
   );
 }
@@ -64,7 +61,7 @@ function ReadingCard({
           <span className="eyebrow">{kind === "sun" ? "ESSÊNCIA" : kind === "moon" ? "MUNDO EMOCIONAL" : "APRESENTAÇÃO AO MUNDO"}</span>
           <h3>{position ? `${title} em ${position.sign}` : title}</h3>
         </div>
-        {position && <span className="pillar-reading-card__degree">{position.degree.toFixed(1)}°</span>}
+        {position && <span className="pillar-reading-card__degree">{formatDegrees(position.degree)}</span>}
       </div>
       <p className="pillar-reading-card__text">{position ? interpretation : unavailableText}</p>
       {!position && <p className="pillar-reading-card__note">Deixamos este resultado em aberto para não apresentar como certo algo que depende de um dado não informado.</p>}
@@ -101,7 +98,7 @@ export function PillarsPreview({ profile, natal, onUnlock }: Props) {
     <section className="pillars-preview" aria-labelledby="pillars-title">
       <header className="page-intro pillars-intro">
         <span className="eyebrow">SEU MAPA PESSOAL</span>
-        <h1 id="pillars-title">{firstName(profile.name)}, seu universo tem muito a revelar.</h1>
+        <h1 id="pillars-title">{firstName(profile.name, "você")}, seu universo tem muito a revelar.</h1>
         <p>Este é o começo do seu mapa: Sol, Lua e Ascendente, calculados neste aparelho a partir dos dados que você informou. Veja os resultados e a interpretação de cada posição.</p>
       </header>
 

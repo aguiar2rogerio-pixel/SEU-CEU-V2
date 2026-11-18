@@ -1,5 +1,6 @@
 import { findGlobalAspects, findPersonalAspects } from "./aspects";
-import { PLANETS } from "./ephemeris";
+import { formatDateISO, planetName } from "./ephemeris";
+import { firstName } from "./formatters";
 import type { BirthProfile, DailyEphemeris, DailyReading, NatalChart, PlanetId, TransitAspect } from "./types";
 
 const THEMES: Record<PlanetId, string> = {
@@ -50,24 +51,20 @@ const ELEMENT_BY_SIGN: Record<string, string> = {
   Câncer: "agua", Escorpião: "agua", Peixes: "agua",
 };
 
-function nameOf(id: PlanetId): string {
-  return PLANETS.find((planet) => planet.id === id)?.name ?? id;
-}
-
 function topicOf(id: PlanetId): string {
   return THEMES[id];
 }
 
 function aspectLine(aspect: TransitAspect): string {
-  const transitName = nameOf(aspect.transitPlanet);
-  const natalName = nameOf(aspect.natalPlanet);
+  const transitName = planetName(aspect.transitPlanet);
+  const natalName = planetName(aspect.natalPlanet);
   return `Na leitura simbólica, ${transitName} em ${ASPECT_WORDS[aspect.type]} com seu ${natalName} coloca ${topicOf(aspect.natalPlanet)} em evidência.`;
 }
 
 function careerAdvice(aspect: TransitAspect | undefined, profile: BirthProfile, natal: NatalChart): string {
   if (aspect) {
-    const planet = nameOf(aspect.transitPlanet);
-    const natalPoint = nameOf(aspect.natalPlanet);
+    const planet = planetName(aspect.transitPlanet);
+    const natalPoint = planetName(aspect.natalPlanet);
     if (["mercury", "mars", "jupiter", "saturn"].includes(aspect.transitPlanet)) {
       return `${planet} toca seu ${natalPoint}: revise prioridades, alinhe expectativas e transforme uma ideia em um próximo passo possível.`;
     }
@@ -75,15 +72,15 @@ function careerAdvice(aspect: TransitAspect | undefined, profile: BirthProfile, 
   }
   const sunSign = natal.sun?.sign;
   const element = sunSign ? ELEMENT_BY_SIGN[sunSign] : "ar";
-  return `${profile.name.split(" ")[0]}, escolha uma prioridade concreta para a semana e deixe espaço para ajustar o plano conforme a realidade.` +
+  return `${firstName(profile.name)}, escolha uma prioridade concreta para a semana e deixe espaço para ajustar o plano conforme a realidade.` +
     (element ? ` Seu Sol em ${sunSign ?? "signo não calculado"} é usado apenas como ponto de reflexão.` : "");
 }
 
 function relationshipAdvice(aspect: TransitAspect | undefined): string {
   if (aspect) {
-    const natalName = nameOf(aspect.natalPlanet);
+    const natalName = planetName(aspect.natalPlanet);
     const verb = TRANSIT_VERBS[aspect.transitPlanet];
-    return `${nameOf(aspect.transitPlanet)} ${verb} o tema do seu ${natalName}; pratique escuta e diga com gentileza o que você precisa.`;
+    return `${planetName(aspect.transitPlanet)} ${verb} o tema do seu ${natalName}; pratique escuta e diga com gentileza o que você precisa.`;
   }
   return "Uma pergunta feita com curiosidade pode aproximar mais do que uma resposta preparada. Reserve tempo para ouvir.";
 }
@@ -94,7 +91,7 @@ export function createWeeklyReadings(
   days: DailyEphemeris[],
 ): DailyReading[] {
   const aspects = findPersonalAspects(days, natal);
-  const firstName = profile.name.trim().split(/\s+/)[0] || "Você";
+  const greetingName = firstName(profile.name);
   const sunSign = natal.sun?.sign;
   const element = sunSign ? ELEMENT_BY_SIGN[sunSign] : "ar";
 
@@ -104,14 +101,13 @@ export function createWeeklyReadings(
       .sort((a, b) => b.score - a.score)
       .slice(0, 3);
     const main = dailyAspects[0];
-    const weekday = new Intl.DateTimeFormat("pt-BR", { weekday: "long", timeZone: "UTC" })
-      .format(new Date(`${day.date}T12:00:00.000Z`));
+    const weekday = formatDateISO(day.date, { weekday: "long" });
     const title = main
-      ? `${nameOf(main.transitPlanet)} em foco no seu ${nameOf(main.natalPlanet)}`
+      ? `${planetName(main.transitPlanet)} em foco no seu ${planetName(main.natalPlanet)}`
       : index === 0 ? "Comece pelo que faz sentido para você" : "Um dia para observar o próprio ritmo";
     const summary = main
-      ? `${firstName}, ${aspectLine(main)}`
-      : `${firstName}, nesta ${weekday}, não encontramos um aspecto pessoal maior nas regras desta versão. ${ELEMENT_REFLECTION[element]}`;
+      ? `${greetingName}, ${aspectLine(main)}`
+      : `${greetingName}, nesta ${weekday}, não encontramos um aspecto pessoal maior nas regras desta versão. ${ELEMENT_REFLECTION[element]}`;
     const action = main
       ? ACTIONS[main.type]
       : "Use esta orientação como convite à reflexão, não como previsão. Escolha uma atitude que esteja sob seu controle.";
@@ -136,7 +132,7 @@ export function weeklyLead(natal: NatalChart, days: DailyEphemeris[]): string {
     .flatMap((day) => findGlobalAspects(day))
     .sort((a, b) => a.orb - b.orb)[0];
   if (mostPreciseGlobal) {
-    return `Um aspecto entre ${nameOf(mostPreciseGlobal.firstPlanet)} e ${nameOf(mostPreciseGlobal.secondPlanet)} aparece com destaque no céu da semana. Veja em quais dias e como esse movimento conversa com o seu mapa.`;
+    return `Um aspecto entre ${planetName(mostPreciseGlobal.firstPlanet)} e ${planetName(mostPreciseGlobal.secondPlanet)} aparece com destaque no céu da semana. Veja em quais dias e como esse movimento conversa com o seu mapa.`;
   }
   const sign = natal.sun?.sign;
   return sign
