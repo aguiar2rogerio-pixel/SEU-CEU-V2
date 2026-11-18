@@ -39,9 +39,10 @@ export function getTimezoneByState(state: string): string {
 
 // Cache local para não fazer requisições repetidas ao IBGE
 const citiesCache: Record<string, CityRecord[]> = {};
+const coordinatesCache: Record<string, { latitude: number; longitude: number }> = {};
 
 /**
- * Busca os municípios de um estado e suas coordenadas reais na API do IBGE,
+ * Busca os municípios de um estado na API de Localidades do IBGE,
  * associando o fuso horário oficial correspondente ao estado.
  */
 export async function getCitiesByState(stateUf: string): Promise<CityRecord[]> {
@@ -50,27 +51,26 @@ export async function getCitiesByState(stateUf: string): Promise<CityRecord[]> {
   }
 
   try {
-    // Utilizando a API de municípios com os dados geográficos e centroide quando disponíveis
-    const response = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${stateUf}/municipios?orderBy=nome`);
-    const data = await response.json();
+    const response = await fetch(
+      `https://ibge.gov.br{stateUf}/municipios?orderBy=nome`
+    );
 
+    if (!response.ok) {
+      throw new Error(`Erro HTTP ${response.status} ao buscar municípios do IBGE`);
+    }
+
+    const data = await response.json();
     const zone = getTimezoneByState(stateUf);
 
-    const formattedCities: CityRecord[] = data.map((item: any) => {
-      // O IBGE fornece a latitude e longitude através do distrito sede ou centroide se mapeado,
-      // caso contrário, extraímos da micro/mesorregião ou usamos coordenadas padrão do município.
-      const centroide = item.centroid || item.microrregiao?.mesorregiao?.UF;
-      
-      return {
-        id: String(item.id),
-        name: item.nome,
-        state: stateUf,
-        // Coordenadas obtidas do registro do IBGE (ou fallback seguro para o estado se omitido)
-        latitude: item.latitude ?? centroide?.latitude ?? -3.119, // Exemplo de fallback para o Amazonas se necessário
-        longitude: item.longitude ?? centroide?.longitude ?? -60.021,
-        timezone: zone,
-      };
-    });
+    const formattedCities: CityRecord[] = data.map((item: any) => ({
+      id: String(item.id),
+      name: item.nome,
+      state: stateUf,
+      // Preenchido sob demanda ao selecionar a cidade, evitando fallback falso
+      latitude: Number.NaN,
+      longitude: Number.NaN,
+      timezone: zone,
+    }));
 
     citiesCache[stateUf] = formattedCities;
     return formattedCities;
@@ -80,3 +80,56 @@ export async function getCitiesByState(stateUf: string): Promise<CityRecord[]> {
   }
 }
 
+/**
+ * Consulta o centroide oficial do município na API de Malhas Geográficas do IBGE
+ * utilizando o código IBGE de 7 dígitos, com cache em memória e sem fallback silencioso.
+ */
+export async function resolveCityCoordinates(city: CityRecord): Promise<CityRecord> {
+  if (Number.isFinite(city.latitude) && Number.isFinite(city.longitude)) {
+    return city;
+  }
+
+  if (coordinatesCache[city.id]) {
+    return {
+      ...city,
+      ...coordinatesCache[city.id],
+    };
+  }
+
+  const response = await fetch(
+    `https://ibge.gov.br{city.id}/metadados`
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Não foi possível consultar as coordenadas de ${city.name}/${city.state} no IBGE (HTTP ${response.status}).`
+    );
+  }
+
+  const data = await response.json();
+  const centroide = Array.isArray(data) ? data[0]?.centroide : data?.centroide;
+
+  if (
+    !centroide ||
+    typeof centroide.latitude !== "number" ||
+    typeof centroide.longitude !== "number" ||
+    !Number.isFinite(centroide.latitude) ||
+    !Number.isFinite(centroide.longitude)
+  ) {
+    throw new Error(
+      `Coordenadas geográficas indisponíveis para ${city.name}/${city.state} no retorno do IBGE.`
+    );
+  }
+
+  const coords = {
+    latitude: centroide.latitude,
+    longitude: centroide.longitude,
+  };
+
+  coordinatesCache[city.id] = coords;
+
+  return {
+    ...city,
+    ...coords,
+  };
+}
