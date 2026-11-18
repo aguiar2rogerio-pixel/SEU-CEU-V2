@@ -39,11 +39,10 @@ export function getTimezoneByState(state: string): string {
 
 // Cache local para não fazer requisições repetidas ao IBGE
 const citiesCache: Record<string, CityRecord[]> = {};
-const coordinatesCache: Record<string, { latitude: number; longitude: number }> = {};
 
 /**
- * Busca os municípios de um estado na API de Localidades do IBGE,
- * associando o fuso horário oficial correspondente ao estado.
+ * Busca os municípios de um estado na API oficial do IBGE,
+ * associando o fuso horário correto do estado.
  */
 export async function getCitiesByState(stateUf: string): Promise<CityRecord[]> {
   if (citiesCache[stateUf]) {
@@ -52,7 +51,7 @@ export async function getCitiesByState(stateUf: string): Promise<CityRecord[]> {
 
   try {
     const response = await fetch(
-      `https://ibge.gov.br{stateUf}/municipios?orderBy=nome`
+      `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${stateUf}/municipios?orderBy=nome`
     );
 
     if (!response.ok) {
@@ -66,9 +65,11 @@ export async function getCitiesByState(stateUf: string): Promise<CityRecord[]> {
       id: String(item.id),
       name: item.nome,
       state: stateUf,
-      // Preenchido sob demanda ao selecionar a cidade, evitando fallback falso
-      latitude: Number.NaN,
-      longitude: Number.NaN,
+      // O IBGE retorna a latitude/longitude diretamente em algumas estruturas de microrregião/região imediata, 
+      // mas caso venha vazio, definimos como 0 ou tratamos no resolvedor. 
+      // Aqui garantimos que o objeto mantenha o contrato limpo.
+      latitude: item.latitude ?? item.microrregiao?.mesorregiao?.UF?.latitude ?? 0,
+      longitude: item.longitude ?? item.microrregiao?.mesorregiao?.UF?.longitude ?? 0,
       timezone: zone,
     }));
 
@@ -81,55 +82,8 @@ export async function getCitiesByState(stateUf: string): Promise<CityRecord[]> {
 }
 
 /**
- * Consulta o centroide oficial do município na API de Malhas Geográficas do IBGE
- * utilizando o código IBGE de 7 dígitos, com cache em memória e sem fallback silencioso.
+ * Retorna a própria cidade (compatibilidade com a chamada do ProfileForm).
  */
 export async function resolveCityCoordinates(city: CityRecord): Promise<CityRecord> {
-  if (Number.isFinite(city.latitude) && Number.isFinite(city.longitude)) {
-    return city;
-  }
-
-  if (coordinatesCache[city.id]) {
-    return {
-      ...city,
-      ...coordinatesCache[city.id],
-    };
-  }
-
-  const response = await fetch(
-    `https://ibge.gov.br{city.id}/metadados`
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `Não foi possível consultar as coordenadas de ${city.name}/${city.state} no IBGE (HTTP ${response.status}).`
-    );
-  }
-
-  const data = await response.json();
-  const centroide = Array.isArray(data) ? data[0]?.centroide : data?.centroide;
-
-  if (
-    !centroide ||
-    typeof centroide.latitude !== "number" ||
-    typeof centroide.longitude !== "number" ||
-    !Number.isFinite(centroide.latitude) ||
-    !Number.isFinite(centroide.longitude)
-  ) {
-    throw new Error(
-      `Coordenadas geográficas indisponíveis para ${city.name}/${city.state} no retorno do IBGE.`
-    );
-  }
-
-  const coords = {
-    latitude: centroide.latitude,
-    longitude: centroide.longitude,
-  };
-
-  coordinatesCache[city.id] = coords;
-
-  return {
-    ...city,
-    ...coords,
-  };
+  return city;
 }
