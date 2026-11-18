@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
-import { BRAZIL_STATES, getCitiesByState, type CityRecord } from "../lib/data/brazil-cities";
+import {
+  BRAZIL_STATES,
+  getCitiesByState,
+  resolveCityCoordinates,
+  type CityRecord,
+} from "../lib/data/brazil-cities";
 import type { BirthProfile } from "../lib/types";
 
 type Props = {
@@ -24,6 +29,9 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
   const [cities, setCities] = useState<CityRecord[]>([]);
   const [selectedCityId, setSelectedCityId] = useState("");
   const [loadingCities, setLoadingCities] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [locationError, setLocationError] = useState("");
+
   const birthTimeGuidance = birthTimeAccuracy === "exact"
     ? "O horário exato ajuda a calcular a Lua e o Ascendente com mais segurança."
     : birthTimeAccuracy === "approximate"
@@ -35,6 +43,7 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
   useEffect(() => {
     let isMounted = true;
     setLoadingCities(true);
+    setLocationError("");
     getCitiesByState(stateUf).then((fetchedCities) => {
       if (isMounted) {
         setCities(fetchedCities);
@@ -46,8 +55,9 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
     };
   }, [stateUf]);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setLocationError("");
 
     if (!birthTimeAccuracy) {
       setBirthTimeError("Escolha se o horário é exato, aproximado ou se você não sabe.");
@@ -62,30 +72,43 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
     
     const foundCity = cities.find((c) => c.id === selectedCityId);
     if (!foundCity) {
-      alert("Por favor, selecione uma cidade válida da lista.");
+      setLocationError("Por favor, selecione uma cidade válida da lista.");
       return;
     }
 
-    const placeName = `${foundCity.name} - ${foundCity.state}`;
-    const formattedTime = `${birthHour}:${birthMinute}`;
+    try {
+      setSubmitting(true);
+      const resolvedCity = await resolveCityCoordinates(foundCity);
 
-    const updatedProfile: BirthProfile = {
-      schemaVersion: 1,
-      name,
-      birthDate,
-      birthTime: birthTimeAccuracy === "unknown" ? null : formattedTime,
-      birthTimeAccuracy,
-      birthPlace: placeName ? String(placeName) : null,
-      birthState: foundCity.state,
-      birthCity: foundCity.name,
-      birthLatitude: foundCity.latitude,
-      birthLongitude: foundCity.longitude,
-      birthTimezone: foundCity.timezone, // CORRIGIDO: Usa o fuso dinâmico correto da cidade
-      timezoneConfirmed: true,
-      updatedAt: new Date().toISOString(),
-    };
+      const placeName = `${resolvedCity.name} - ${resolvedCity.state}`;
+      const formattedTime = `${birthHour}:${birthMinute}`;
 
-    onSave(updatedProfile);
+      const updatedProfile: BirthProfile = {
+        schemaVersion: 1,
+        name,
+        birthDate,
+        birthTime: birthTimeAccuracy === "unknown" ? null : formattedTime,
+        birthTimeAccuracy,
+        birthPlace: placeName ? String(placeName) : null,
+        birthState: resolvedCity.state,
+        birthCity: resolvedCity.name,
+        birthLatitude: resolvedCity.latitude,
+        birthLongitude: resolvedCity.longitude,
+        birthTimezone: resolvedCity.timezone,
+        timezoneConfirmed: true,
+        updatedAt: new Date().toISOString(),
+      };
+
+      onSave(updatedProfile);
+    } catch (error) {
+      setLocationError(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível obter as coordenadas deste município. Tente novamente."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -95,6 +118,7 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
         <h2>{initialProfile ? "Revise seus dados" : "Calcule seus três pilares"}</h2>
         <p>{initialProfile ? "Ao salvar, o mapa será recalculado neste aparelho." : "Preencha o que souber. O aplicativo informa com clareza quando algum dado não puder ser confirmado."}</p>
       </div>
+
       <div>
         <label style={{ display: "block", marginBottom: "0.4rem", fontSize: "0.9rem", fontWeight: 500 }}>Como podemos chamar você?</label>
         <input
@@ -194,18 +218,23 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
         <label style={{ display: "block", marginBottom: "0.6rem", fontSize: "0.9rem", fontWeight: 600, color: "#f0c674" }}>
           📍 Local de Nascimento (IBGE Oficial)
         </label>
-        <p className="birth-location-help">O município e o horário ajudam o cálculo do Ascendente. A lista de municípios é consultada pelo estado selecionado.</p>
+        <p className="birth-location-help" style={{ marginBottom: "0.75rem", fontSize: "0.85rem", color: "#a0a0b0" }}>
+          O município e o horário ajudam o cálculo do Ascendente. A lista de municípios é consultada pelo estado selecionado.
+        </p>
         
         <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "0.75rem" }}>
           <div>
             <label style={{ display: "block", marginBottom: "0.3rem", fontSize: "0.8rem", opacity: 0.8 }}>Estado</label>
             <select
               value={stateUf}
-              onChange={(e) => { setStateUf(e.target.value); setSelectedCityId(""); }}
+              onChange={(e) => { setStateUf(e.target.value); setSelectedCityId(""); setLocationError(""); }}
+              disabled={submitting}
               style={{ width: "100%", padding: "0.75rem", borderRadius: "8px", background: "#161622", border: "1px solid rgba(255,255,255,0.15)", color: "#fff" }}
             >
               {BRAZIL_STATES.map((uf) => (
-                <option key={uf} value={uf}>{uf}</option>
+                <option key={uf} value={uf}>
+                  {uf}
+                </option>
               ))}
             </select>
           </div>
@@ -217,28 +246,47 @@ export function ProfileForm({ initialProfile, onSave }: Props) {
             <select
               required
               value={selectedCityId}
-              onChange={(e) => setSelectedCityId(e.target.value)}
-              disabled={loadingCities}
+              onChange={(e) => { setSelectedCityId(e.target.value); setLocationError(""); }}
+              disabled={loadingCities || submitting}
               style={{ width: "100%", padding: "0.75rem", borderRadius: "8px", background: "#161622", border: "1px solid rgba(255,255,255,0.15)", color: "#fff" }}
             >
-              <option value="">{loadingCities ? "Buscando cidades..." : "Selecione a cidade..."}</option>
+              <option value="" disabled>
+                {loadingCities ? "Buscando cidades..." : "Selecione a cidade..."}
+              </option>
               {cities.map((city) => (
-                <option key={city.id} value={city.id}>{city.name}</option>
+                <option key={city.id} value={city.id}>
+                  {city.name}
+                </option>
               ))}
             </select>
           </div>
         </div>
+
+        {locationError && (
+          <p className="form-error" role="alert" style={{ marginTop: "0.6rem", color: "#ff6b6b", fontSize: "0.85rem" }}>
+            {locationError}
+          </p>
+        )}
       </div>
 
       <button
         type="submit"
+        disabled={submitting || loadingCities}
         style={{
-          marginTop: "0.5rem", padding: "0.95rem", background: "linear-gradient(135deg, #f0c674 0%, #d0a654 100%)", color: "#161622",
-          border: "none", borderRadius: "10px", fontWeight: 700, cursor: "pointer", fontSize: "1.05rem",
-          boxShadow: "0 4px 14px rgba(240, 198, 116, 0.25)"
+          marginTop: "0.5rem",
+          padding: "0.95rem",
+          background: "linear-gradient(135deg, #f0c674 0%, #d0a654 100%)",
+          color: "#161622",
+          border: "none",
+          borderRadius: "10px",
+          fontWeight: 700,
+          cursor: submitting || loadingCities ? "not-allowed" : "pointer",
+          fontSize: "1.05rem",
+          boxShadow: "0 4px 14px rgba(240, 198, 116, 0.25)",
+          opacity: submitting || loadingCities ? 0.7 : 1
         }}
       >
-        Calcular meu céu
+        {submitting ? "Consultando coordenadas..." : "Calcular meu céu"}
       </button>
     </form>
   );
