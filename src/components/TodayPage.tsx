@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ChevronRight, Moon, Orbit, RefreshCw, Sparkles, Sun } from "lucide-react";
+import { CalendarDays, ChevronRight, Moon, Orbit, RefreshCw, Sparkles, Sun } from "lucide-react";
 import { ReadingCard } from "./ReadingCard";
 import { SectionHeading } from "./SectionHeading";
 import { formatDateISO, planetName } from "../lib/ephemeris";
@@ -11,28 +11,24 @@ type TodayPageProps = {
   profile: BirthProfile;
   bundle: WeeklyBundle | null;
   todayISO: string;
-  selectedDate: string;
   shortRange: string;
-  selectedReading: DailyReading | null;
+  todayReading: DailyReading | null;
   isRecalculating: boolean;
   onRecalculate: () => void;
   onShowWeek: () => void;
   onShowMap: () => void;
-  onShowPillars: () => void;
 };
 
 export function TodayPage({
   profile,
   bundle,
   todayISO,
-  selectedDate,
   shortRange,
-  selectedReading,
+  todayReading,
   isRecalculating,
   onRecalculate,
   onShowWeek,
   onShowMap,
-  onShowPillars,
 }: TodayPageProps) {
   return (
     <>
@@ -54,43 +50,37 @@ export function TodayPage({
           <span className="eyebrow eyebrow--gold"><Sparkles size={13} aria-hidden="true" /> SEU DESTAQUE DA SEMANA</span>
           <h2>{bundle ? weeklyLead(bundle.natal, bundle.days) : "Seu céu está sendo preparado"}</h2>
           <p>{shortRange} <span className="hero-dot">·</span> calculado {bundle ? formatDateISO(bundle.calculatedAt.slice(0, 10), { day: "numeric", month: "short" }) : "agora"}</p>
-          <button className="text-link text-link--gold" onClick={onShowWeek}>Ver minha semana <ChevronRight size={16} /></button>
+          <button className="button button--primary hero-reading__cta" onClick={onShowWeek}>
+            Ver minha semana <ChevronRight size={18} aria-hidden="true" />
+          </button>
         </div>
         <div className="hero-moon" aria-hidden="true"><span /></div>
       </section>
 
-      {selectedReading && (
-        <section className="section-block">
-          <SectionHeading
-            eyebrow={selectedDate === todayISO ? "HOJE" : formatDateISO(selectedDate, { weekday: "long" }).toUpperCase()}
-            title="Seu ponto de atenção"
-          />
-          <ReadingCard reading={selectedReading} />
-        </section>
-      )}
+      <section className="section-block sky-section">
+        <SectionHeading eyebrow="MOVIMENTOS DA SEMANA" title="O céu em movimento" />
+        <p className="sky-period"><CalendarDays size={14} aria-hidden="true" /> Eventos e aspectos de {shortRange}</p>
+        <SkySummary days={bundle?.days ?? []} />
+      </section>
+
+      <section className="section-block">
+        <SectionHeading eyebrow="HOJE" title="Seu ponto de atenção" />
+        {todayReading
+          ? <ReadingCard reading={todayReading} compact />
+          : <p className="empty-note">Ainda não há leitura calculada para hoje. Recalcule a semana para atualizar.</p>}
+      </section>
 
       <section className="section-block">
         <div className="section-heading-row">
           <SectionHeading eyebrow="DO SEU MAPA" title="Três referências" />
-          <button className="text-link" onClick={onShowMap}>Ver mapa <ChevronRight size={15} /></button>
+          <button className="text-link" onClick={onShowMap}>Ver meu mapa <ChevronRight size={15} /></button>
         </div>
-        <div className="sign-summary">
+        <div className="sign-summary sign-summary--compact">
           <SignTile label="Sol" position={bundle?.natal.sun ?? null} icon={<Sun size={17} />} />
           <SignTile label="Lua" position={bundle?.natal.moon ?? null} icon={<Moon size={17} />} />
           <SignTile label="Ascendente" position={bundle?.natal.ascendant ?? null} icon={<Orbit size={17} />} />
         </div>
         <p className="tiny-note">O Ascendente é calculado com base na data, hora e coordenadas geográficas informadas.</p>
-
-        <div className="pillars-return-link">
-          <button className="text-link" onClick={onShowPillars}>
-            Rever a explicação dos três pilares <ChevronRight size={15} />
-          </button>
-        </div>
-      </section>
-
-      <section className="section-block sky-section">
-        <SectionHeading eyebrow="MOVIMENTO COMPARTILHADO" title="O céu em movimento" />
-        <SkySummary days={bundle?.days ?? []} />
       </section>
     </>
   );

@@ -56,7 +56,9 @@ export function WeekPage({
           </button>
         ))}
       </div>
-      {selectedReading && <ReadingCard reading={selectedReading} />}
+      {selectedReading
+        ? <ReadingCard reading={selectedReading} />
+        : days.length > 0 && <p className="empty-note">Não há leitura para esta data. Escolha outro dia da semana ou atualize os dados.</p>}
       {selectedSky && <SkyDetail day={selectedSky} />}
 
       {selectedSky && (

@@ -52,6 +52,15 @@ Entregar do zero um PWA instalável, confortável no celular e simples de manter
 - [x] Validar dados persistidos e importados, manter o formato de backup suportado e reverter a gravação de perfil/pacote se a restauração falhar.
 - [x] Configurar o workflow do GitHub Actions para executar a suíte antes do build/deploy; a origem do Pages e a branch `main` não foram alteradas.
 
+## Hierarquia da página Hoje
+
+- A página Hoje resume a semana sem duplicar as leituras de trabalho e relações da tela Semana. A ordem é: destaque semanal com período e CTA principal; céu em movimento identificado pelo mesmo intervalo; ponto de atenção do dia atual; três referências compactas com acesso a Meu mapa.
+- O ponto de atenção sempre usa a leitura cuja data é exatamente `todayISO`, independentemente do dia selecionado na tela Semana. Não deve substituir uma leitura ausente pela primeira da semana.
+- O botão do destaque semanal é grande e claramente acionável. O resumo do céu informa que os movimentos e aspectos pertencem ao intervalo mostrado, não somente ao dia atual.
+- As três referências permanecem no resumo e o link “Ver meu mapa” abre a aba Meu mapa. A página Hoje não oferece retorno para a tela pós-cadastro/pilares.
+- Nas abas internas, um controle visível “Início” retorna a Hoje, sem depender do botão Voltar do navegador móvel.
+- Esta mudança é de hierarquia e seleção de apresentação; preservar fórmulas, coordenadas, fusos e conteúdo da leitura semanal fora da página Hoje.
+
 ## Direção visual
 
 - **Movimento de design:** editorial celeste contemporâneo, com influência de observatórios noturnos e diários de campo; premium pela hierarquia e pelo cuidado, não por ornamentos excessivos.

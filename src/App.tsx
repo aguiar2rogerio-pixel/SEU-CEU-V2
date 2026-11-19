@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Check, Map, Orbit, ShieldCheck, Sparkles, Sun, WifiOff, X } from "lucide-react";
+import { CalendarDays, Check, Home, Map, Orbit, ShieldCheck, Sparkles, Sun, WifiOff, X } from "lucide-react";
 import { ProfileForm } from "./components/ProfileForm";
 import { TodayPage } from "./components/TodayPage";
 import { MapPage } from "./components/MapPage";
@@ -119,12 +119,17 @@ function App() {
     }
   }, [profile]);
 
+  const todayISO = currentLocalISODate();
+  const todayReading = useMemo(
+    () => bundle?.readings.find((reading) => reading.date === todayISO) ?? null,
+    [bundle, todayISO],
+  );
   const selectedReading = useMemo(
-    () => bundle?.readings.find((reading) => reading.date === selectedDate) ?? bundle?.readings[0] ?? null,
+    () => bundle?.readings.find((reading) => reading.date === selectedDate) ?? null,
     [bundle, selectedDate],
   );
   const selectedSky = useMemo(
-    () => bundle?.days.find((day) => day.date === selectedDate) ?? bundle?.days[0] ?? null,
+    () => bundle?.days.find((day) => day.date === selectedDate) ?? null,
     [bundle, selectedDate],
   );
   const notice = profile ? accuracyNotice(profile) : null;
@@ -262,7 +267,6 @@ function App() {
   }
 
   const weekStart = bundle?.weekStart ?? getMondayISO();
-  const todayISO = currentLocalISODate();
   const shortRange = formatWeekRange(weekStart);
   const birthTimeLabel = profile.birthTimeAccuracy === "unknown" ? "Horário desconhecido" : `${profile.birthTimeAccuracy === "approximate" ? "Aprox." : "Exato"} · ${profile.birthTime ?? ""}`;
 
@@ -273,6 +277,11 @@ function App() {
           <BrandMark /><span>SEU CÉU</span>
         </a>
         <div className="topbar-actions">
+          {hasTestAccess && tab !== "today" && (
+            <button className="home-button" onClick={() => setTab("today")} aria-label="Voltar ao início" title="Voltar ao início">
+              <Home size={16} aria-hidden="true" /><span className="home-button__label">Início</span>
+            </button>
+          )}
           {!online && <span className="offline-pill"><WifiOff size={13} aria-hidden="true" /> Offline</span>}
           {online && <span className="sync-pill"><span className="status-dot" /> No seu aparelho</span>}
           {installEvent && <button className="install-button" onClick={promptInstall}>Instalar</button>}
@@ -293,14 +302,12 @@ function App() {
             profile={profile}
             bundle={bundle}
             todayISO={todayISO}
-            selectedDate={selectedDate}
             shortRange={shortRange}
-            selectedReading={selectedReading}
+            todayReading={todayReading}
             isRecalculating={isRecalculating}
             onRecalculate={recalculate}
             onShowWeek={() => { setTab("week"); setSelectedDate(todayISO); }}
             onShowMap={() => setTab("map")}
-            onShowPillars={() => setTab("pillars")}
           />
         )}
 

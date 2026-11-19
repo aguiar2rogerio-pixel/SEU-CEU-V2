@@ -48,6 +48,8 @@ button:disabled { cursor: wait; opacity: .55; }
 .offline-pill { color: #e5c0c0; border-color: rgba(230,141,144,.27); }
 .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 7px rgba(144,199,174,.5); }
 .install-button { padding: 8px 13px; border: 1px solid rgba(217,182,111,.44); border-radius: 99px; background: rgba(217,182,111,.1); color: var(--gold-light); font-size: .75rem; cursor: pointer; }
+.home-button { display: inline-flex; min-height: 38px; flex: 0 0 auto; align-items: center; justify-content: center; gap: 7px; padding: 0 12px; border: 1px solid rgba(217,182,111,.38); border-radius: 99px; background: rgba(217,182,111,.075); color: var(--gold-light); font-size: .73rem; font-weight: 600; cursor: pointer; transition: background .16s, border-color .16s; }
+.home-button:hover { border-color: rgba(217,182,111,.66); background: rgba(217,182,111,.14); }
 
 .page-content { width: min(100% - 36px, 710px); margin: 0 auto; padding: 30px 0 44px; }
 .greeting-block { display: flex; justify-content: space-between; align-items: center; margin: 10px 0 24px; }
@@ -66,6 +68,7 @@ button:disabled { cursor: wait; opacity: .55; }
 .hero-reading h2 { max-width: 480px; margin: 15px 0 13px; font-family: var(--serif); font-size: clamp(1.38rem, 5vw, 1.82rem); font-weight: 400; line-height: 1.25; }
 .hero-reading p { display: flex; align-items: center; gap: 8px; margin: 0; color: #c2bdce; font-size: .77rem; }
 .hero-dot { color: var(--gold); }
+.hero-reading__cta { min-height: 48px; margin-top: 18px; padding: 11px 17px; border-radius: 12px; font-size: .84rem; box-shadow: 0 8px 22px rgba(217,182,111,.16); }
 .hero-orbit { position: absolute; right: -85px; top: -75px; width: 260px; height: 260px; border: 1px solid rgba(200,187,230,.15); border-radius: 50%; transform: rotate(-27deg) scaleY(.54); }
 .hero-orbit--two { right: -22px; top: -120px; width: 250px; height: 360px; border-color: rgba(217,182,111,.17); transform: rotate(31deg) scaleY(.5); }
 .hero-stars span { position: absolute; z-index: 1; width: 4px; height: 4px; border-radius: 50%; background: var(--gold-light); box-shadow: 0 0 12px rgba(240,216,162,.7); }
@@ -109,8 +112,11 @@ button:disabled { cursor: wait; opacity: .55; }
 .sign-tile small { margin-top: 2px; color: var(--muted-2); font-size: .65rem; }
 .sign-tile--muted { background: rgba(29,27,40,.75); }
 .sign-tile--muted strong { color: #aaa5b6; font-family: "DM Sans", system-ui, sans-serif; font-size: .8rem; }
+.sign-summary--compact .sign-tile { min-height: 112px; }
 .tiny-note { margin: 10px 2px 0; color: var(--muted-2); font-size: .7rem; line-height: 1.55; }
 
+.sky-period { display: flex; align-items: center; gap: 7px; margin: -7px 0 13px; color: var(--muted); font-size: .74rem; }
+.sky-period svg { flex: 0 0 auto; color: var(--gold); }
 .sky-summary { padding: 16px 17px; border: 1px solid var(--line); border-radius: 15px; background: rgba(27,25,41,.72); }
 .sky-summary__row { display: flex; align-items: flex-start; gap: 12px; padding: 4px 0 12px; }
 .sky-summary__row + .sky-summary__row { padding-top: 13px; border-top: 1px solid var(--line); }
@@ -262,14 +268,17 @@ button:disabled { cursor: wait; opacity: .55; }
   .topbar { height: 59px; padding: 0 15px; }
   .brand { font-size: .7rem; }
   .sync-pill, .offline-pill { padding: 6px 8px; font-size: .62rem; }
+  .home-button { min-height: 35px; padding: 0 10px; font-size: .68rem; }
   .hero-reading { min-height: 230px; padding: 22px 19px; }
   .hero-reading__content { width: 89%; }
   .hero-reading h2 { max-width: 335px; font-size: 1.43rem; }
+  .hero-reading__cta { min-height: 46px; margin-top: 16px; }
   .hero-moon { right: 16px; top: 37px; width: 65px; height: 65px; }
   .hero-moon span { top: -4px; left: 15px; width: 54px; height: 57px; }
   .advice-grid { grid-template-columns: 1fr; }
   .sign-summary { gap: 7px; }
   .sign-tile { min-height: 122px; padding: 11px; }
+  .sign-summary--compact .sign-tile { min-height: 108px; }
   .sign-tile__icon { top: 10px; left: 10px; width: 28px; height: 28px; }
   .sign-tile strong { font-size: 1.02rem; }
   .sign-tile--muted strong { font-size: .73rem; }
@@ -285,6 +294,10 @@ button:disabled { cursor: wait; opacity: .55; }
   .profile-form { padding: 16px; }
   .form-actions .button { flex: 1; }
   .backup-actions .button { flex: 1; }
+}
+@media (max-width: 360px) {
+  .home-button { width: 36px; padding: 0; }
+  .home-button__label { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
