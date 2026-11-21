@@ -1,7 +1,9 @@
+import { useMemo } from "react";
 import { Check, Copy, FileText, Moon, Orbit, ShieldCheck, Sun, Trash2 } from "lucide-react";
 import { SectionHeading } from "./SectionHeading";
 import { PLANETS, planetName } from "../lib/ephemeris";
 import { formatDegrees } from "../lib/formatters";
+import { calculateProfilePlacidus } from "../lib/houses/profile-placidus";
 import type { BirthProfile, WeeklyBundle } from "../lib/types";
 
 type MapPageProps = {
@@ -35,6 +37,11 @@ export function MapPage({
   onSaveAiText,
   onCancelAiEdit,
 }: MapPageProps) {
+  const placidus = useMemo(
+    () => calculateProfilePlacidus(profile, bundle?.natal ?? null),
+    [profile, bundle?.natal],
+  );
+
   return (
     <>
       <section className="page-intro">
@@ -43,7 +50,7 @@ export function MapPage({
         <p>Posições calculadas localmente a partir dos dados que você informou.</p>
       </section>
       <div className="map-meta-card"><div><span>HORÁRIO</span><strong>{birthTimeLabel}</strong></div><div><span>LOCAL</span><strong>{profile.birthPlace || "Não informado"}</strong></div><div><span>FUSO</span><strong>{profile.birthTimezone}</strong></div></div>
-      {profile.birthTimeAccuracy === "unknown" && <div className="inline-notice">Sem horário de nascimento, a Lua natal e o Ascendente não são exibidos.</div>}
+      {profile.birthTimeAccuracy === "unknown" && <div className="inline-notice">Sem horário de nascimento, a Lua natal, o Ascendente e as casas astrológicas não são exibidos.</div>}
 
       {bundle?.natal.ascendant && (
         <div className="planet-list" style={{ marginBottom: "1rem" }}>
@@ -67,7 +74,73 @@ export function MapPage({
           );
         })}
       </div>
-      <div className="explain-card"><ShieldCheck size={17} /><p>Os graus vêm do Astronomy Engine, executado no aparelho. A lista mostra posições geocêntricas tropicais e o Ascendente local.</p></div>
+      <div className="explain-card"><ShieldCheck size={17} /><p>Os graus dos planetas vêm do Astronomy Engine, executado no aparelho. A lista mostra posições geocêntricas tropicais; o cálculo original do Ascendente permanece preservado.</p></div>
+
+      <section className="section-block house-section" aria-label="Casas astrológicas Placidus">
+        <SectionHeading eyebrow="SISTEMA PLACIDUS" title="As 12 casas" />
+        {placidus.status === "unavailable" ? (
+          <div className="house-unavailable" role="status">
+            <ShieldCheck size={18} aria-hidden="true" />
+            <div><strong>Casas não disponíveis</strong><p>{placidus.message}</p></div>
+          </div>
+        ) : (
+          <>
+            {placidus.status === "estimated" && placidus.message && (
+              <div className="inline-notice inline-notice--warm house-estimate" role="note">{placidus.message} As cúspides e as casas dos planetas podem variar se o horário real for diferente.</div>
+            )}
+            <div className="house-grid" aria-label="Cúspides e planetas por casa">
+              {placidus.cusps.map((cusp) => {
+                const occupants = PLANETS.filter((planet) => placidus.planetHouses[planet.id] === cusp.house);
+                const angleLabel = cusp.house === 1
+                  ? "Ascendente"
+                  : cusp.house === 4
+                    ? "Fundo do Céu · IC"
+                    : cusp.house === 7
+                      ? "Descendente"
+                      : cusp.house === 10
+                        ? "Meio do Céu · MC"
+                        : null;
+
+                return (
+                  <article className="house-card" key={cusp.house} aria-label={`Casa ${cusp.house}`}>
+                    <div className="house-card__topline">
+                      <span>CASA {cusp.house}</span>
+                      {angleLabel && <span className="house-card__angle">{angleLabel}</span>}
+                    </div>
+                    <div className="house-card__cusp">
+                      <strong>{cusp.sign}</strong>
+                      <span>{formatDegrees(cusp.degree)}</span>
+                    </div>
+                    <div className="house-card__occupants">
+                      <span className="house-card__caption">PLANETAS NESTA CASA</span>
+                      {bundle ? (
+                        occupants.length > 0 ? (
+                          <div className="house-planet-list">
+                            {occupants.map((planet) => {
+                              const position = bundle.natal[planet.id];
+                              return (
+                                <span className="house-planet-chip" key={planet.id}>
+                                  <strong>{planetName(planet.id)}</strong>
+                                  {position && <small>{position.sign} · {formatDegrees(position.degree)}</small>}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="house-card__empty">Nenhum planeta nesta casa</p>
+                        )
+                      ) : (
+                        <p className="house-card__empty">Posições planetárias indisponíveis</p>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+            <p className="house-method-note">A cúspide indica o início de cada casa. A posição dos planetas usa as longitudes tropicais já calculadas pelo aplicativo, sem recalcular os planetas.</p>
+          </>
+        )}
+      </section>
 
       <section className="section-block" style={{ marginTop: "2rem", background: "rgba(255,255,255,0.02)", padding: "1.5rem", borderRadius: "16px", border: "1px solid rgba(240, 198, 116, 0.2)" }}>
         <SectionHeading eyebrow="ANÁLISE DE IA" title="Análise Aprofundada com IA" />

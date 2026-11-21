@@ -405,3 +405,36 @@ input[type="time"] {
   .pillars-discover-item__icon { grid-row: span 2; }
   .pillars-discover-item h3 { margin: 0 0 3px; }
 }
+
+/* Meu Mapa: cúspides Placidus e distribuição dos planetas por casa */
+.house-section { margin-top: 2rem; }
+.house-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
+.house-card { min-width: 0; padding: 14px; border: 1px solid rgba(182,168,223,.16); border-radius: 15px; background: linear-gradient(145deg, rgba(34,31,49,.92), rgba(26,24,38,.92)); }
+.house-card__topline { display: flex; min-height: 20px; align-items: flex-start; justify-content: space-between; gap: 6px; }
+.house-card__topline > span:first-child { color: var(--muted-2); font-size: .59rem; font-weight: 700; letter-spacing: .12em; }
+.house-card__angle { max-width: 68%; padding: 3px 6px; border: 1px solid rgba(217,182,111,.2); border-radius: 99px; color: var(--gold-light); font-size: .54rem; line-height: 1.25; text-align: right; }
+.house-card__cusp { display: flex; align-items: baseline; justify-content: space-between; gap: 7px; margin: 8px 0 12px; }
+.house-card__cusp strong { overflow-wrap: anywhere; color: #eee8f5; font-family: var(--serif); font-size: 1.12rem; font-weight: 400; }
+.house-card__cusp > span { flex: 0 0 auto; color: var(--gold-light); font-size: .7rem; }
+.house-card__occupants { min-height: 47px; padding-top: 9px; border-top: 1px solid var(--line); }
+.house-card__caption { display: block; margin-bottom: 7px; color: var(--muted-2); font-size: .53rem; font-weight: 700; letter-spacing: .08em; }
+.house-planet-list { display: flex; flex-wrap: wrap; gap: 5px; }
+.house-planet-chip { display: inline-flex; min-width: 0; flex-direction: column; gap: 2px; padding: 5px 7px; border: 1px solid rgba(182,168,223,.2); border-radius: 9px; background: rgba(182,168,223,.07); color: #d7cbed; line-height: 1.2; }
+.house-planet-chip strong { overflow-wrap: anywhere; font-size: .61rem; font-weight: 600; }
+.house-planet-chip small { color: #aaa0bf; font-size: .54rem; }
+.house-card__empty { margin: 0; color: var(--muted-2); font-size: .62rem; line-height: 1.45; }
+.house-method-note { margin: 12px 2px 0; color: var(--muted-2); font-size: .68rem; line-height: 1.55; }
+.house-estimate { margin-bottom: 11px; }
+.house-unavailable { display: flex; align-items: flex-start; gap: 11px; padding: 15px; border: 1px solid rgba(182,168,223,.18); border-radius: 13px; background: rgba(182,168,223,.055); color: var(--lavender); }
+.house-unavailable svg { flex: 0 0 auto; margin-top: 1px; }
+.house-unavailable strong { display: block; color: #e1d9ef; font-size: .79rem; }
+.house-unavailable p { margin: 5px 0 0; color: #bdb5ce; font-size: .72rem; line-height: 1.5; }
+
+@media (max-width: 360px) {
+  .house-grid { gap: 7px; }
+  .house-card { padding: 11px 9px; }
+  .house-card__cusp strong { font-size: 1rem; }
+  .house-card__angle { font-size: .5rem; }
+  .house-planet-chip { padding: 4px 5px; }
+  .house-planet-chip strong { font-size: .58rem; }
+}
