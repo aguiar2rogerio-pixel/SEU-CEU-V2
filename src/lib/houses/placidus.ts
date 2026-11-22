@@ -253,25 +253,27 @@ function assignHouses(
       result[planet] = null;
       continue;
     }
-
-    const normalized = normalizeDegrees(longitude);
-    let house: number | null = null;
-
-    for (let index = 0; index < cusps.length; index += 1) {
-      const start = cusps[index].longitude;
-      const end = cusps[(index + 1) % cusps.length].longitude;
-      const span = normalizeDegrees(end - start);
-      const offset = normalizeDegrees(normalized - start);
-      if (offset < span) {
-        house = cusps[index].house;
-        break;
-      }
-    }
-
-    result[planet] = house;
+    result[planet] = findHouseForLongitude(longitude, cusps);
   }
 
   return result;
+}
+
+/** Atribui uma longitude tropical à casa pelo intervalo exato entre cúspides. */
+export function findHouseForLongitude(
+  longitude: number,
+  cusps: readonly PlacidusCusp[],
+): number | null {
+  if (!Number.isFinite(longitude) || cusps.length !== 12) return null;
+  const normalized = normalizeDegrees(longitude);
+  for (let index = 0; index < cusps.length; index += 1) {
+    const start = cusps[index].longitude;
+    const end = cusps[(index + 1) % cusps.length].longitude;
+    const span = normalizeDegrees(end - start);
+    const offset = normalizeDegrees(normalized - start);
+    if (offset < span) return cusps[index].house;
+  }
+  return null;
 }
 
 function hasValidCuspOrder(cusps: PlacidusCusp[]): boolean {

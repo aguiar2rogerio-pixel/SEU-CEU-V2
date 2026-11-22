@@ -10,13 +10,14 @@ import { generateNatalPrompt, generateWeeklyPrompt } from "./lib/ai-prompts";
 import { findGlobalAspects } from "./lib/aspects";
 import { downloadBackup, parseBackup } from "./lib/backup";
 import { calculateNatalChart, calculateWeek, currentLocalISODate, EPHEMERIS_MODEL_VERSION, formatWeekRange, getMondayISO } from "./lib/ephemeris";
+import { calculateNatalExtensions, NATAL_EXTENSIONS_VERSION } from "./lib/natal-extensions";
 import { createWeeklyReadings } from "./lib/readings";
 import {
   clearLocalData, clearSavedAiReading, clearTestAccess, loadProfile, loadSavedAiReading,
   loadTestAccess, loadWeeklyBundle, restoreProfileAndBundle, saveAiReading, saveProfile, saveTestAccess, saveWeeklyBundle,
 } from "./lib/storage";
 import { isReusableWeeklyBundle } from "./lib/weekly-bundle";
-import type { BirthProfile, DailyEphemeris, WeeklyBundle } from "./lib/types";
+import type { BirthProfile, DailyEphemeris, NatalChart, WeeklyBundle } from "./lib/types";
 
 type TabId = "pillars" | "today" | "map" | "week" | "profile";
 const NAV_ITEMS: { id: TabId; label: string; icon: typeof Sun }[] = [
@@ -26,8 +27,12 @@ const NAV_ITEMS: { id: TabId; label: string; icon: typeof Sun }[] = [
   { id: "profile", label: "Perfil", icon: Map },
 ];
 
-function buildBundle(profile: BirthProfile): WeeklyBundle {
-  const natal = calculateNatalChart(profile);
+async function buildBundle(profile: BirthProfile): Promise<WeeklyBundle> {
+  const baseNatal = calculateNatalChart(profile);
+  const natal: NatalChart = {
+    ...baseNatal,
+    ...await calculateNatalExtensions(profile, baseNatal),
+  };
   const days: DailyEphemeris[] = calculateWeek().map((day) => ({
     ...day,
     globalAspects: findGlobalAspects(day),
@@ -43,6 +48,14 @@ function buildBundle(profile: BirthProfile): WeeklyBundle {
     days,
     readings: createWeeklyReadings(profile, natal, days),
   };
+}
+
+function hasNatalExtensions(natal: NatalChart): boolean {
+  const pointIds = ["northNode", "southNode", "lilith", "chiron", "partOfFortune", "vertex"] as const;
+  return natal.natalExtensionsVersion === NATAL_EXTENSIONS_VERSION &&
+    Object.prototype.hasOwnProperty.call(natal, "angles") &&
+    Object.prototype.hasOwnProperty.call(natal, "houses") &&
+    pointIds.every((id) => Object.prototype.hasOwnProperty.call(natal.complementaryPoints ?? {}, id));
 }
 
 function useOnlineStatus(): boolean {
@@ -104,19 +117,34 @@ function App() {
       setBundle(null);
       return;
     }
+    let cancelled = false;
     const cached = loadWeeklyBundle();
     if (isReusableWeeklyBundle(cached, profile)) {
       setBundle(cached);
-      return;
+      if (hasNatalExtensions(cached.natal)) return () => { cancelled = true; };
+      void calculateNatalExtensions(profile, cached.natal).then((extensions) => {
+        if (cancelled) return;
+        const enriched: WeeklyBundle = {
+          ...cached,
+          natal: { ...cached.natal, ...extensions },
+        };
+        setBundle(enriched);
+        try { saveWeeklyBundle(enriched); } catch { setError("O mapa foi ampliado, mas não coube no armazenamento do navegador."); }
+      }).catch((calculationError: unknown) => {
+        if (!cancelled) setError(calculationError instanceof Error ? calculationError.message : "Não foi possível ampliar os dados do mapa salvo.");
+      });
+      return () => { cancelled = true; };
     }
-    try {
-      const freshBundle = buildBundle(profile);
+    void buildBundle(profile).then((freshBundle) => {
+      if (cancelled) return;
       setBundle(freshBundle);
       try { saveWeeklyBundle(freshBundle); } catch { setError("A semana foi calculada, mas não coube no armazenamento do navegador."); }
-    } catch (calculationError) {
+    }).catch((calculationError: unknown) => {
+      if (cancelled) return;
       setError(calculationError instanceof Error ? calculationError.message : "Não foi possível calcular seu mapa nesta tentativa.");
       setBundle(null);
-    }
+    });
+    return () => { cancelled = true; };
   }, [profile]);
 
   const todayISO = currentLocalISODate();
@@ -166,12 +194,12 @@ function App() {
       : "Acesso de teste liberado nesta sessão; talvez não seja mantido se você fechar o aplicativo.");
   }
 
-  function recalculate() {
+  async function recalculate() {
     if (!profile) return;
     setIsRecalculating(true);
     setError("");
     try {
-      const fresh = buildBundle(profile);
+      const fresh = await buildBundle(profile);
       saveWeeklyBundle(fresh);
       setBundle(fresh);
       setSuccess("Seu mapa e a semana foram recalculados neste aparelho.");

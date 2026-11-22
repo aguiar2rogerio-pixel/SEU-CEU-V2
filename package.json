@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@astrologer/ephemera": "0.4.1",
     "@fontsource/dm-sans": "^5.3.0",
     "@fontsource/dm-serif-display": "^5.3.0",
     "astronomy-engine": "^2.1.19",

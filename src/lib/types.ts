@@ -51,8 +51,60 @@ export interface PlanetPosition {
   retrograde: boolean;
 }
 
+export type ComplementaryPointId =
+  | "northNode"
+  | "southNode"
+  | "lilith"
+  | "chiron"
+  | "partOfFortune"
+  | "vertex";
+export type NatalAngleId = "ascendant" | "descendant" | "midheaven" | "imumCoeli";
+
+export interface NatalEclipticPoint {
+  longitude: number;
+  sign: ZodiacSign;
+  degree: number;
+  minute: number;
+}
+
+export interface NatalAngle extends NatalEclipticPoint {
+  id: NatalAngleId;
+}
+
+export interface ComplementaryPointPosition {
+  id: ComplementaryPointId;
+  longitude: number | null;
+  sign: ZodiacSign | null;
+  degree: number | null;
+  /** Minuto inteiro truncado para conferência; longitude/degree preservam o valor exato. */
+  minute: number | null;
+  house: number | null;
+  retrograde: boolean | null;
+  motion: "direct" | "retrograde" | "stationary" | "not-applicable" | null;
+  speedDegreesPerDay: number | null;
+  status: "calculated" | "estimated" | "unavailable";
+  method: string;
+  reason: string | null;
+}
+
+export interface NatalHouseCusp extends NatalEclipticPoint {
+  house: number;
+}
+
+export interface NatalHouseData {
+  status: "calculated" | "estimated" | "unavailable";
+  system: "placidus";
+  angles: Record<NatalAngleId, NatalAngle> | null;
+  cusps: NatalHouseCusp[];
+  message: string | null;
+}
+
 export type NatalChart = Record<PlanetId, PlanetPosition | null> & {
   ascendant?: PlanetPosition | null;
+  natalExtensionsVersion?: string;
+  angles?: Record<NatalAngleId, NatalAngle> | null;
+  houses?: NatalHouseData | null;
+  complementaryPoints?: Partial<Record<ComplementaryPointId, ComplementaryPointPosition | null>>;
 };
 
 export interface TransitAspect {

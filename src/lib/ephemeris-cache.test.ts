@@ -48,6 +48,17 @@ describe("validação do cache semanal", () => {
     expect(isReusableWeeklyBundle(bundle, profile, referenceDate)).toBe(true);
   });
 
+  it("mantém reutilizável um mapa legado sem ângulos ou pontos complementares", () => {
+    const current = makeBundle();
+    const { angles, houses, complementaryPoints, ...legacyNatal } = current.natal;
+    void angles;
+    void houses;
+    void complementaryPoints;
+    const legacyBundle = { ...current, natal: legacyNatal };
+
+    expect(isReusableWeeklyBundle(legacyBundle, profile, referenceDate)).toBe(true);
+  });
+
   it("rejeita uma semana calculada por outra versão do motor", () => {
     const bundle = { ...makeBundle(), ephemerisVersion: "modelo-anterior" };
     expect(isReusableWeeklyBundle(bundle, profile, referenceDate)).toBe(false);

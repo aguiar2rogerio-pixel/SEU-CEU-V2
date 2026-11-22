@@ -11,7 +11,7 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["icons/icon.svg"],
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,png,ico,webmanifest,json,woff2}"],
+        globPatterns: ["**/*.{js,css,html,svg,png,ico,webmanifest,json,woff2,wasm}"],
         navigateFallback: "/SEU-CEU-V2/index.html",
         cleanupOutdatedCaches: true,
       },
