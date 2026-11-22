@@ -2,9 +2,9 @@ import { useMemo } from "react";
 import { Check, Copy, FileText, Moon, Orbit, ShieldCheck, Sun, Trash2 } from "lucide-react";
 import { SectionHeading } from "./SectionHeading";
 import { PLANETS, planetName } from "../lib/ephemeris";
-import { formatDegrees } from "../lib/formatters";
+import { formatDegrees, formatDegreesMinutes } from "../lib/formatters";
 import { calculateProfilePlacidus } from "../lib/houses/profile-placidus";
-import type { BirthProfile, WeeklyBundle } from "../lib/types";
+import type { BirthProfile, ComplementaryPointId, ComplementaryPointPosition, WeeklyBundle } from "../lib/types";
 
 type MapPageProps = {
   profile: BirthProfile;
@@ -21,6 +21,24 @@ type MapPageProps = {
   onSaveAiText: () => void;
   onCancelAiEdit: () => void;
 };
+
+const COMPLEMENTARY_POINT_LABELS: { id: ComplementaryPointId; name: string; detail: string }[] = [
+  { id: "northNode", name: "Nodo Norte", detail: "Nodo Médio" },
+  { id: "southNode", name: "Nodo Sul", detail: "Oposição exata ao Nodo Norte" },
+  { id: "lilith", name: "Lilith", detail: "Lilith Média · apogeu lunar médio" },
+  { id: "chiron", name: "Quíron", detail: "2060 · posição aparente" },
+  { id: "partOfFortune", name: "Parte da Fortuna", detail: "Fórmula tradicional diurna/noturna" },
+  { id: "vertex", name: "Vértice", detail: "Interseção ocidental com o prime vertical" },
+];
+
+function pointMotionLabel(position: ComplementaryPointPosition): string | null {
+  switch (position.motion) {
+    case "retrograde": return "Retrógrado (R)";
+    case "direct": return "Direto";
+    case "stationary": return "Estacionário (St)";
+    default: return null;
+  }
+}
 
 export function MapPage({
   profile,
@@ -41,6 +59,7 @@ export function MapPage({
     () => calculateProfilePlacidus(profile, bundle?.natal ?? null),
     [profile, bundle?.natal],
   );
+  const complementaryPositions = bundle?.natal.complementaryPoints ?? null;
 
   return (
     <>
@@ -75,6 +94,49 @@ export function MapPage({
         })}
       </div>
       <div className="explain-card"><ShieldCheck size={17} /><p>Os graus dos planetas vêm do Astronomy Engine, executado no aparelho. A lista mostra posições geocêntricas tropicais; o cálculo original do Ascendente permanece preservado.</p></div>
+
+      <section className="section-block complementary-points-section" aria-label="Pontos natais complementares">
+        <SectionHeading eyebrow="PONTOS COMPLEMENTARES" title="Mais posições do seu mapa" />
+        <p className="complementary-points-intro">Nodo e Lilith são apresentados nas variantes médias. Os graus aparecem em graus e minutos; λ indica a longitude tropical.</p>
+        {!bundle || !bundle.natal.natalExtensionsVersion || !complementaryPositions ? (
+          <p className="complementary-points-loading" role="status">Calculando os pontos complementares…</p>
+        ) : (
+          <div className="planet-list complementary-point-list">
+            {COMPLEMENTARY_POINT_LABELS.map((point) => {
+              const position = complementaryPositions[point.id] ?? null;
+              const motion = position ? pointMotionLabel(position) : null;
+              const degreeMinute = position && position.degree !== null && position.minute !== null
+                ? formatDegreesMinutes(position.degree, position.minute)
+                : null;
+              const rowIsUnknown = !position || position.status === "unavailable";
+
+              return (
+                <article className={`planet-row complementary-point-row${rowIsUnknown ? " planet-row--unknown" : ""}`} key={point.id}>
+                  <div className="planet-symbol"><Orbit size={18} aria-hidden="true" /></div>
+                  <div className="planet-row__name complementary-point-row__name">
+                    <strong>{point.name}</strong>
+                    <span>{point.detail}{position?.longitude !== null && position?.longitude !== undefined ? ` · λ ${position.longitude.toFixed(4)}°` : ""}</span>
+                    {position && (
+                      <div className="complementary-point-row__meta">
+                        {position.status === "estimated" && <span className="complementary-point-status complementary-point-status--estimated">Estimado</span>}
+                        {position.status === "unavailable" && <span className="complementary-point-status complementary-point-status--unavailable">Indisponível</span>}
+                        {position.house !== null ? <span>Casa {position.house}</span> : position.status !== "unavailable" ? <span>Casa indisponível</span> : null}
+                        {motion && <span>{motion}</span>}
+                      </div>
+                    )}
+                    {position?.status === "unavailable" && position.reason && (
+                      <small className="complementary-point-row__reason">{position.reason}</small>
+                    )}
+                  </div>
+                  <div className="planet-row__sign">
+                    {position?.sign && degreeMinute ? <><strong>{position.sign}</strong><span>{degreeMinute}</span></> : <span>{position?.status === "unavailable" ? "Sem posição" : "Aguardando"}</span>}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       <section className="section-block house-section" aria-label="Casas astrológicas Placidus">
         <SectionHeading eyebrow="SISTEMA PLACIDUS" title="As 12 casas" />

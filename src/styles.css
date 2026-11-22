@@ -430,6 +430,17 @@ input[type="time"] {
 .house-unavailable strong { display: block; color: #e1d9ef; font-size: .79rem; }
 .house-unavailable p { margin: 5px 0 0; color: #bdb5ce; font-size: .72rem; line-height: 1.5; }
 
+.complementary-points-section { margin-top: 1.75rem; }
+.complementary-points-intro { margin: -4px 0 12px; color: var(--muted-2); font-size: .68rem; line-height: 1.5; }
+.complementary-points-loading { margin: 0; padding: 14px; border: 1px solid var(--line); border-radius: 13px; color: var(--muted); font-size: .74rem; }
+.complementary-point-row { align-items: flex-start; }
+.complementary-point-row .planet-symbol { margin-top: 3px; }
+.complementary-point-row__name { padding-top: 2px; }
+.complementary-point-row__meta { display: flex; flex-wrap: wrap; gap: 5px 10px; color: var(--muted); font-size: .63rem; line-height: 1.4; }
+.complementary-point-status { padding: 2px 6px; border: 1px solid rgba(240,198,116,.2); border-radius: 99px; color: var(--gold-light); }
+.complementary-point-status--unavailable { border-color: rgba(255,255,255,.12); color: var(--muted-2); }
+.complementary-point-row__reason { color: var(--muted-2); font-size: .62rem; line-height: 1.45; }
+
 @media (max-width: 360px) {
   .house-grid { gap: 7px; }
   .house-card { padding: 11px 9px; }
@@ -437,4 +448,6 @@ input[type="time"] {
   .house-card__angle { font-size: .5rem; }
   .house-planet-chip { padding: 4px 5px; }
   .house-planet-chip strong { font-size: .58rem; }
+  .complementary-point-row { gap: 8px; padding-right: 10px; padding-left: 10px; }
+  .complementary-point-row .planet-row__sign { min-width: 70px; }
 }
