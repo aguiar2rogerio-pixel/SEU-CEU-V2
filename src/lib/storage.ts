@@ -5,6 +5,7 @@ import { isWeeklyBundle } from "./weekly-bundle";
 const PROFILE_KEY = "seu_ceu_profile";
 const BUNDLE_KEY = "seu_ceu_weekly_bundle";
 const AI_READING_KEY = "seu_ceu_saved_ai_reading";
+const EXPERIENCE_READING_PREFIX = "seu_ceu_reading_";
 const TEST_ACCESS_KEY = "seu_ceu_v2_test_access";
 
 // Liberação apenas para o período de teste, salva neste aparelho.
@@ -158,6 +159,36 @@ export function clearSavedAiReading(): void {
   }
 }
 
+export type SavedReadingId = "natal" | "current" | "yearly";
+
+export function loadSavedReading(id: SavedReadingId): string {
+  try {
+    const saved = localStorage.getItem(`${EXPERIENCE_READING_PREFIX}${id}`);
+    if (saved) return saved;
+    return id === "natal" ? loadSavedAiReading() : "";
+  } catch {
+    return "";
+  }
+}
+
+export function saveReading(id: SavedReadingId, text: string): void {
+  try {
+    localStorage.setItem(`${EXPERIENCE_READING_PREFIX}${id}`, text);
+  } catch (error) {
+    console.error("Erro ao salvar leitura no localStorage:", error);
+    throw new Error("Não foi possível salvar esta leitura no navegador.");
+  }
+}
+
+export function clearSavedReading(id: SavedReadingId): void {
+  try {
+    localStorage.removeItem(`${EXPERIENCE_READING_PREFIX}${id}`);
+    if (id === "natal") localStorage.removeItem(AI_READING_KEY);
+  } catch (error) {
+    console.error("Erro ao remover leitura do localStorage:", error);
+  }
+}
+
 // ------------------------------
 // LIMPEZA GERAL DE DADOS
 // ------------------------------
@@ -166,6 +197,7 @@ export function clearLocalData(): void {
     localStorage.removeItem(PROFILE_KEY);
     localStorage.removeItem(BUNDLE_KEY);
     localStorage.removeItem(AI_READING_KEY);
+    (['natal', 'current', 'yearly'] as SavedReadingId[]).forEach((id) => localStorage.removeItem(`${EXPERIENCE_READING_PREFIX}${id}`));
     localStorage.removeItem(TEST_ACCESS_KEY);
   } catch (error) {
     console.error("Erro ao apagar dados locais:", error);

@@ -17,3 +17,12 @@
 - [x] **Consolidação de helpers e limpeza segura:** Nomes e formatação comuns foram centralizados onde o comportamento é igual. O modal antigo, comprovadamente sem importadores, foi removido; os estilos e componentes ainda usados foram preservados.
 - [x] **Contrato consistente e restauração segura:** Dados persistidos e importados são validados, o formato de backup versão 1 permanece suportado e a restauração de perfil/pacote tem rollback com testes de falha.
 - [x] **Verificações antes da publicação:** O workflow foi ajustado para executar `pnpm test` antes do build/deploy, sem alteração da origem ou destino do Pages. Os testes e o build local passaram; a verificação pública/deploy ainda não foi executada.
+
+
+## Fase 2 — reorganização do mapa e leituras
+
+- [x] **Cartões dos dez planetas:** A página Meu Mapa Astral apresenta os dez planetas em cartões visuais, com símbolo, nome, signo, grau/minuto e indicador de retrogradação quando aplicável, mantendo a identidade visual dos cards das casas.
+- [x] **Ângulos do mapa:** Existe uma seção “Ângulos do seu mapa” com Ascendente, Descendente, Meio do Céu e Fundo do Céu, nomes completos, siglas secundárias, signo e grau/minuto.
+- [x] **Pontos complementares:** Nodo Norte, Nodo Sul, Lilith, Quíron, Parte da Fortuna e Vértice aparecem em cartões próprios, com signo, grau/minuto, casa e informações complementares sem sobrecarregar a interface.
+- [x] **Casas preservadas:** Os 12 cards Placidus existentes continuam exibindo número, signo e grau da cúspide, ângulo quando aplicável e planetas posicionados, sem alteração dos cálculos.
+- [x] **Três experiências internas:** A antiga seção única de análise foi removida do final do mapa e substituída por acessos internos a Meu Mapa Natal, Meu Momento Atual e Meu Céu em 2027. Cada experiência apresenta explicação, prompt, resultado colado, edição, salvamento local e consulta posterior.

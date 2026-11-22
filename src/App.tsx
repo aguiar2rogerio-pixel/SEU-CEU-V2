@@ -6,15 +6,16 @@ import { MapPage } from "./components/MapPage";
 import { WeekPage } from "./components/WeekPage";
 import { ProfilePage } from "./components/ProfilePage";
 import { PillarsPreview } from "./components/PillarsPreview";
-import { generateNatalPrompt, generateWeeklyPrompt } from "./lib/ai-prompts";
+import { ReadingExperiencePage, type ReadingExperienceId } from "./components/ReadingExperiencePage";
+import { generateCurrentPrompt, generateNatalPrompt, generateWeeklyPrompt, generateYearlyPrompt } from "./lib/ai-prompts";
 import { findGlobalAspects } from "./lib/aspects";
 import { downloadBackup, parseBackup } from "./lib/backup";
 import { calculateNatalChart, calculateWeek, currentLocalISODate, EPHEMERIS_MODEL_VERSION, formatWeekRange, getMondayISO } from "./lib/ephemeris";
 import { calculateNatalExtensions, NATAL_EXTENSIONS_VERSION } from "./lib/natal-extensions";
 import { createWeeklyReadings } from "./lib/readings";
 import {
-  clearLocalData, clearSavedAiReading, clearTestAccess, loadProfile, loadSavedAiReading,
-  loadTestAccess, loadWeeklyBundle, restoreProfileAndBundle, saveAiReading, saveProfile, saveTestAccess, saveWeeklyBundle,
+  clearLocalData, clearSavedReading, clearTestAccess, loadProfile, loadSavedReading,
+  loadTestAccess, loadWeeklyBundle, restoreProfileAndBundle, saveProfile, saveReading, saveTestAccess, saveWeeklyBundle,
 } from "./lib/storage";
 import { isReusableWeeklyBundle } from "./lib/weekly-bundle";
 import type { BirthProfile, DailyEphemeris, NatalChart, WeeklyBundle } from "./lib/types";
@@ -97,10 +98,10 @@ function App() {
   const [isRecalculating, setIsRecalculating] = useState(false);
   const [installEvent, setInstallEvent] = useState<Event | null>(null);
 
-  // Estados para o Gerador de Prompts e Leitura Guardada da IA
-  const [aiReadingText, setAiReadingText] = useState<string>(() => loadSavedAiReading());
-  const [inputAiText, setInputAiText] = useState<string>("");
-  const [isEditingAi, setIsEditingAi] = useState<boolean>(false);
+  const [readingExperience, setReadingExperience] = useState<ReadingExperienceId | null>(null);
+  const [savedReadings, setSavedReadings] = useState<Record<ReadingExperienceId, string>>(() => ({ natal: loadSavedReading("natal"), current: loadSavedReading("current"), yearly: loadSavedReading("yearly") }));
+  const [inputReading, setInputReading] = useState<string>("");
+  const [isEditingReading, setIsEditingReading] = useState<boolean>(false);
   const [copiedPromptType, setCopiedPromptType] = useState<string | null>(null);
 
   useEffect(() => {
@@ -236,7 +237,8 @@ function App() {
       clearLocalData();
       setProfile(null);
       setBundle(null);
-      setAiReadingText("");
+      setSavedReadings({ natal: "", current: "", yearly: "" });
+      setReadingExperience(null);
       setHasTestAccess(false);
       setTab("pillars");
       setSuccess("");
@@ -259,21 +261,37 @@ function App() {
     setTimeout(() => setCopiedPromptType(null), 3000);
   }
 
-  function handleSaveAiText() {
-    if (!inputAiText.trim()) return;
-    saveAiReading(inputAiText);
-    setAiReadingText(inputAiText);
-    setIsEditingAi(false);
-    setInputAiText("");
-    setSuccess("Leitura da IA salva no aparelho com sucesso!");
+  function openReadingExperience(experience: ReadingExperienceId) {
+    setReadingExperience(experience);
+    setInputReading(savedReadings[experience]);
+    setIsEditingReading(false);
+    setCopiedPromptType(null);
   }
 
-  function handleClearAiText() {
-    if (window.confirm("Deseja apagar a leitura salva da IA?")) {
-      clearSavedAiReading();
-      setAiReadingText("");
-      setSuccess("Leitura da IA removida.");
-    }
+  function copyReadingPrompt() {
+    if (!readingExperience || !bundle || !profile) return;
+    const prompt = readingExperience === "natal"
+      ? generateNatalPrompt(profile, bundle.natal)
+      : readingExperience === "current"
+        ? generateCurrentPrompt(profile, bundle.natal, bundle)
+        : generateYearlyPrompt(profile, bundle.natal);
+    copyToClipboard(prompt, `reading-${readingExperience}`);
+  }
+
+  function saveCurrentReading() {
+    if (!readingExperience || !inputReading.trim()) return;
+    saveReading(readingExperience, inputReading.trim());
+    setSavedReadings((current) => ({ ...current, [readingExperience]: inputReading.trim() }));
+    setIsEditingReading(false);
+    setSuccess("Leitura guardada neste aparelho.");
+  }
+
+  function clearCurrentReading() {
+    if (!readingExperience || !window.confirm("Deseja apagar esta leitura salva?")) return;
+    clearSavedReading(readingExperience);
+    setSavedReadings((current) => ({ ...current, [readingExperience]: "" }));
+    setInputReading("");
+    setSuccess("Leitura removida.");
   }
 
   if (!profile) {
@@ -335,25 +353,36 @@ function App() {
             isRecalculating={isRecalculating}
             onRecalculate={recalculate}
             onShowWeek={() => { setTab("week"); setSelectedDate(todayISO); }}
-            onShowMap={() => setTab("map")}
+            onShowMap={() => { setReadingExperience(null); setTab("map"); }}
           />
         )}
 
-        {tab === "map" && (
+        {tab === "map" && readingExperience && (
+          <ReadingExperiencePage
+            experience={readingExperience}
+            profile={profile}
+            natal={bundle?.natal ?? null}
+            bundle={bundle}
+            savedText={savedReadings[readingExperience]}
+            inputText={inputReading}
+            copied={copiedPromptType === `reading-${readingExperience}`}
+            isEditing={isEditingReading}
+            onBack={() => setReadingExperience(null)}
+            onCopyPrompt={copyReadingPrompt}
+            onEdit={() => { setInputReading(savedReadings[readingExperience]); setIsEditingReading(true); }}
+            onClear={clearCurrentReading}
+            onInputChange={setInputReading}
+            onSave={saveCurrentReading}
+            onCancelEdit={() => setIsEditingReading(false)}
+          />
+        )}
+
+        {tab === "map" && !readingExperience && (
           <MapPage
             profile={profile}
             bundle={bundle}
             birthTimeLabel={birthTimeLabel}
-            aiReadingText={aiReadingText}
-            inputAiText={inputAiText}
-            isEditingAi={isEditingAi}
-            copiedPromptType={copiedPromptType}
-            onCopyNatalPrompt={() => copyToClipboard(generateNatalPrompt(profile, bundle?.natal ?? null), "natal")}
-            onEditAi={() => { setInputAiText(aiReadingText); setIsEditingAi(true); }}
-            onClearAiText={handleClearAiText}
-            onInputAiTextChange={setInputAiText}
-            onSaveAiText={handleSaveAiText}
-            onCancelAiEdit={() => setIsEditingAi(false)}
+            onOpenExperience={openReadingExperience}
           />
         )}
 
@@ -390,7 +419,7 @@ function App() {
       {hasTestAccess && (
         <nav className="bottom-nav" aria-label="Navegação principal">
           {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
-            <button key={id} className={`nav-item ${tab === id ? "is-active" : ""}`} onClick={() => setTab(id)} aria-current={tab === id ? "page" : undefined}>
+              <button key={id} className={`nav-item ${tab === id ? "is-active" : ""}`} onClick={() => { if (id === "map") setReadingExperience(null); setTab(id); }} aria-current={tab === id ? "page" : undefined}>
               <Icon size={20} strokeWidth={tab === id ? 2.2 : 1.7} aria-hidden="true" /><span>{label}</span>
             </button>
           ))}

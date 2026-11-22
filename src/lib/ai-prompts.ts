@@ -83,3 +83,17 @@ REGRAS RIGOROSAS DE FORMATAÇÃO:
 - Responda APENAS em texto Markdown limpo e formatado.
 - NÃO inclua imagens, links, URLs ou markdown de mídia (![imagem](...)).`;
 }
+
+export function generateCurrentPrompt(profile: BirthProfile, natal: NatalChart | null, bundle: { days: DailyEphemeris[] } | null): string {
+  if (!natal || !bundle) return "";
+  const firstDays = bundle.days.slice(0, 7).map((day) => {
+    const aspects = day.globalAspects.slice(0, 3).map((aspect) => `${planetName(aspect.firstPlanet)} ${aspect.type} ${planetName(aspect.secondPlanet)}`).join(", ") || "sem aspecto maior";
+    return `- ${day.date}: ${aspects}; retrógrados: ${day.retrogrades.map(planetName).join(", ") || "nenhum"}`;
+  }).join("\n");
+  return `Atue como um astrólogo acolhedor e lúcido. Faça uma leitura do momento atual de ${profile.name}, relacionando o mapa natal abaixo com os trânsitos calculados para os próximos dias.\n\nMAPA NATAL:\n${generateNatalPrompt(profile, natal)}\n\nTRÂNSITOS CALCULADOS:\n${firstDays}\n\nOrganize em: tema central do momento, oportunidades, pontos de atenção, relações, trabalho e uma prática simples para a semana. Não invente posições nem faça previsões deterministas. Responda em Markdown limpo, sem links ou imagens.`;
+}
+
+export function generateYearlyPrompt(profile: BirthProfile, natal: NatalChart | null): string {
+  if (!natal) return "";
+  return `Atue como um astrólogo experiente, acolhedor e responsável. Crie uma leitura anual personalizada para ${profile.name} sobre 2027 usando exclusivamente o mapa natal abaixo.\n\n${generateNatalPrompt(profile, natal)}\n\nOrganize a leitura por: visão geral do ano, identidade e desenvolvimento, trabalho e vocação, relações, bem-estar e quatro períodos do ano (janeiro–março, abril–junho, julho–setembro, outubro–dezembro). Use linguagem simbólica, indique tendências como possibilidades e ofereça perguntas práticas de reflexão. Não invente trânsitos específicos que não foram fornecidos, não prometa acontecimentos e responda em Markdown limpo, sem links ou imagens.`;
+}

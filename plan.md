@@ -79,3 +79,10 @@ Entregar do zero um PWA instalável, confortável no celular e simples de manter
 ## Limites desta primeira versão
 
 Não há serviço de interpretação com IA, chamada a fornecedor astrológico, conta, base de dados, pagamento, plano premium, atualização automática por backend ou sincronização entre dispositivos. O botão de acesso é apenas uma liberação gratuita de teste no próprio aparelho e não comprova compra. O cálculo e a interpretação baseada em regras permanecem locais; uma fase futura poderá substituir essa liberação por checkout e validação de pagamento, sem alterar as fórmulas do mapa.
+
+
+## Fase 2 — mapa visual e experiências de leitura
+
+A página Meu Mapa Astral foi reorganizada em cartões visuais para os dez planetas, preservando os valores calculados e exibindo signo, graus/minutos e retrogradação quando aplicável. Os quatro ângulos passaram a ter uma seção própria com nomes completos, siglas secundárias, signo, graus/minutos e descrição breve. Os seis pontos complementares passaram a ter cartões próprios com signo, graus/minutos, casa, movimento e estado de disponibilidade quando existentes. A estrutura atual das 12 casas Placidus foi mantida, incluindo cúspides, identificação dos ângulos e planetas ocupantes.
+
+A antiga seção única de análise foi substituída por três acessos internos: Meu Mapa Natal, Meu Momento Atual e Meu Céu em 2027. As três experiências usam uma página reutilizável, prompts já existentes/ampliados, edição do resultado colado e persistência local independente por leitura. O motor astrológico e o cálculo das casas não foram alterados.
