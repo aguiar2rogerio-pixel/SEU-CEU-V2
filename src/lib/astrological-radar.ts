@@ -1,81 +1,63 @@
-import { ZODIAC_SIGNS, planetName } from "./ephemeris";
-import type { NatalChart, PlanetId, ZodiacSign } from "./types";
+import { PLANETS, ZODIAC_SIGNS } from "./ephemeris";
+import type { NatalChart, ZodiacSign } from "./types";
 
 /**
- * Pesos do Radar: Sol, Lua e Ascendente representam a base do mapa; Mercúrio,
- * Vênus e Marte recebem peso elevado; Júpiter e Saturno, peso intermediário;
- * Urano, Netuno e Plutão entram como camadas complementares.
+ * O Radar é uma ferramenta de orientação: conta cada posição natal disponível
+ * uma única vez no signo em que está. Não há pesos, bônus ou interpretação.
  */
-export const RADAR_WEIGHTS = {
-  sun: 5,
-  moon: 5,
-  ascendant: 5,
-  mercury: 4,
-  venus: 4,
-  mars: 4,
-  jupiter: 3,
-  saturn: 3,
-  uranus: 1.5,
-  neptune: 1.5,
-  pluto: 1.5,
-  concentration: 3,
-  complementary: 1,
-} as const;
-
 export interface RadarSignResult {
   sign: ZodiacSign;
-  score: number;
-  reasons: string[];
-  planetCount: number;
+  positions: string[];
 }
 
-const WEIGHTED_PLANETS: PlanetId[] = [
-  "sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune", "pluto",
+type SignPosition = { sign: ZodiacSign | null; status?: "calculated" | "estimated" | "unavailable" };
+
+const ANGLE_LABELS: { id: "ascendant" | "descendant" | "midheaven" | "imumCoeli"; label: string }[] = [
+  { id: "ascendant", label: "Ascendente" },
+  { id: "descendant", label: "Descendente" },
+  { id: "midheaven", label: "Meio do Céu" },
+  { id: "imumCoeli", label: "Fundo do Céu" },
+];
+
+const COMPLEMENTARY_LABELS: { id: "northNode" | "southNode" | "lilith" | "chiron" | "partOfFortune" | "vertex"; label: string }[] = [
+  { id: "northNode", label: "Nodo Norte" },
+  { id: "southNode", label: "Nodo Sul" },
+  { id: "lilith", label: "Lilith" },
+  { id: "chiron", label: "Quíron" },
+  { id: "partOfFortune", label: "Parte da Fortuna" },
+  { id: "vertex", label: "Vértice" },
 ];
 
 export function calculateAstrologicalRadar(natal: NatalChart | null): RadarSignResult[] {
-  const scoreBySign = new Map<ZodiacSign, { score: number; reasons: string[]; planetCount: number }>();
-  ZODIAC_SIGNS.forEach((sign) => scoreBySign.set(sign, { score: 0, reasons: [], planetCount: 0 }));
+  const positionsBySign = new Map<ZodiacSign, string[]>();
+  ZODIAC_SIGNS.forEach((sign) => positionsBySign.set(sign, []));
 
-  if (!natal) return ZODIAC_SIGNS.map((sign) => ({ sign, score: 0, reasons: [], planetCount: 0 }));
+  if (!natal) return [];
 
-  const addPosition = (sign: ZodiacSign, weight: number, reason: string, countAsPlanet = false) => {
-    const entry = scoreBySign.get(sign);
-    if (!entry) return;
-    entry.score += weight;
-    entry.reasons.push(reason);
-    if (countAsPlanet) entry.planetCount += 1;
+  const addPosition = (position: SignPosition | null | undefined, label: string) => {
+    if (!position?.sign || position.status === "unavailable") return;
+    positionsBySign.get(position.sign)?.push(label);
   };
 
-  for (const planetId of WEIGHTED_PLANETS) {
-    const weight = RADAR_WEIGHTS[planetId];
-    const position = natal[planetId];
-    if (position) addPosition(position.sign, weight, `${planetName(planetId)} · peso ${weight}`, true);
+  for (const planet of PLANETS) {
+    addPosition(natal[planet.id], planet.name);
   }
 
-  const ascendant = natal.ascendant;
-  if (ascendant) addPosition(ascendant.sign, RADAR_WEIGHTS.ascendant, `Ascendente · peso ${RADAR_WEIGHTS.ascendant}`);
-
-  scoreBySign.forEach((entry) => {
-    if (entry.planetCount >= 3) {
-      entry.score += RADAR_WEIGHTS.concentration;
-      entry.reasons.push(`Concentração de ${entry.planetCount} planetas · bônus ${RADAR_WEIGHTS.concentration}`);
-    }
-  });
-
-  const complementaryPoints = [
-    ["Nodo Norte", natal.complementaryPoints?.northNode],
-    ["Nodo Sul", natal.complementaryPoints?.southNode],
-    ["Quíron", natal.complementaryPoints?.chiron],
-  ] as const;
-  for (const [label, point] of complementaryPoints) {
-    if (point?.sign) addPosition(point.sign, RADAR_WEIGHTS.complementary, `${label} · camada complementar +${RADAR_WEIGHTS.complementary}`);
+  // O Ascendente legado e angles.ascendant representam a mesma posição.
+  // Preferimos a versão estruturada e contamos o ponto apenas uma vez.
+  const structuredAscendant = natal.angles?.ascendant;
+  addPosition(structuredAscendant ?? natal.ascendant, "Ascendente");
+  for (const angle of ANGLE_LABELS.slice(1)) {
+    addPosition(natal.angles?.[angle.id], angle.label);
   }
 
-  return ZODIAC_SIGNS.map((sign, index) => {
-    const entry = scoreBySign.get(sign)!;
-    return { sign, score: Number(entry.score.toFixed(1)), reasons: entry.reasons, planetCount: entry.planetCount, originalIndex: index };
-  })
-    .sort((a, b) => b.score - a.score || a.originalIndex - b.originalIndex)
-    .map(({ originalIndex: _originalIndex, ...result }) => result);
+  for (const point of COMPLEMENTARY_LABELS) {
+    addPosition(natal.complementaryPoints?.[point.id], point.label);
+  }
+
+  return ZODIAC_SIGNS
+    .map((sign, originalIndex) => ({ sign, positions: positionsBySign.get(sign) ?? [], originalIndex }))
+    .filter((result) => result.positions.length >= 2)
+    .sort((a, b) => b.positions.length - a.positions.length || a.originalIndex - b.originalIndex)
+    .map(({ sign, positions }) => ({ sign, positions }));
 }

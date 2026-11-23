@@ -1,42 +1,100 @@
 import { describe, expect, it } from "vitest";
 import { calculateAstrologicalRadar } from "./astrological-radar";
-import type { NatalChart, PlanetId } from "./types";
+import type { ComplementaryPointId, NatalChart, NatalAngleId, PlanetId, ZodiacSign } from "./types";
 
 const emptyNatal = (): NatalChart => ({
   sun: null, moon: null, mercury: null, venus: null, mars: null,
   jupiter: null, saturn: null, uranus: null, neptune: null, pluto: null,
 });
 
-function position(planet: PlanetId, sign: "Áries" | "Touro"): NonNullable<NatalChart[PlanetId]> {
-  return { planet, longitude: sign === "Áries" ? 10 : 40, sign, degree: 10, retrograde: false };
+function planetPosition(planet: PlanetId, sign: ZodiacSign) {
+  return { planet, longitude: 10, sign, degree: 10, retrograde: false };
+}
+
+function anglePosition(id: NatalAngleId, sign: ZodiacSign) {
+  return { id, longitude: 10, sign, degree: 10, minute: 0 };
+}
+
+function complementaryPosition(id: ComplementaryPointId, sign: ZodiacSign) {
+  return { id, longitude: 10, sign, degree: 10, minute: 0, house: null, retrograde: false, motion: "not-applicable" as const, speedDegreesPerDay: null, status: "calculated" as const, method: "test", reason: null };
 }
 
 describe("calculateAstrologicalRadar", () => {
-  it("mostra todos os signos e não inventa pontuação para posições ausentes", () => {
-    const result = calculateAstrologicalRadar(emptyNatal());
-    expect(result).toHaveLength(12);
-    expect(result.every((item) => item.score === 0 && item.reasons.length === 0)).toBe(true);
+  it("retorna nenhum destaque quando não há duas posições no mesmo signo", () => {
+    const natal = emptyNatal();
+    natal.sun = planetPosition("sun", "Áries");
+    natal.moon = planetPosition("moon", "Touro");
+    expect(calculateAstrologicalRadar(natal)).toEqual([]);
   });
 
-  it("aplica pesos principais e bônus de concentração", () => {
+  it("exibe apenas signos com duas ou mais posições e ordena por concentração", () => {
     const natal = emptyNatal();
-    natal.sun = position("sun", "Áries");
-    natal.moon = position("moon", "Áries");
-    natal.mercury = position("mercury", "Áries");
-    natal.ascendant = position("sun", "Touro");
-    const aries = calculateAstrologicalRadar(natal).find((item) => item.sign === "Áries");
-    expect(aries?.score).toBe(17);
-    expect(aries?.reasons).toContain("Concentração de 3 planetas · bônus 3");
+    natal.sun = planetPosition("sun", "Áries");
+    natal.moon = planetPosition("moon", "Áries");
+    natal.mercury = planetPosition("mercury", "Touro");
+    natal.venus = planetPosition("venus", "Touro");
+    natal.mars = planetPosition("mars", "Touro");
+
+    expect(calculateAstrologicalRadar(natal)).toEqual([
+      { sign: "Touro", positions: ["Mercúrio", "Vênus", "Marte"] },
+      { sign: "Áries", positions: ["Sol", "Lua"] },
+    ]);
   });
 
-  it("inclui nodos e Quíron como camadas complementares", () => {
+  it("contabiliza ângulos e pontos complementares, sem duplicar o Ascendente legado", () => {
     const natal = emptyNatal();
-    natal.complementaryPoints = {
-      northNode: { id: "northNode", longitude: 10, sign: "Áries", degree: 10, minute: 0, house: null, retrograde: false, motion: "not-applicable", speedDegreesPerDay: null, status: "calculated", method: "test", reason: null },
-      chiron: { id: "chiron", longitude: 40, sign: "Touro", degree: 10, minute: 0, house: null, retrograde: false, motion: "retrograde", speedDegreesPerDay: null, status: "calculated", method: "test", reason: null },
+    natal.ascendant = planetPosition("sun", "Câncer");
+    natal.pluto = planetPosition("pluto", "Escorpião");
+    natal.angles = {
+      ascendant: anglePosition("ascendant", "Câncer"),
+      descendant: anglePosition("descendant", "Câncer"),
+      midheaven: anglePosition("midheaven", "Virgem"),
+      imumCoeli: anglePosition("imumCoeli", "Virgem"),
     };
-    const result = calculateAstrologicalRadar(natal);
-    expect(result.find((item) => item.sign === "Áries")?.score).toBe(1);
-    expect(result.find((item) => item.sign === "Touro")?.score).toBe(1);
+    natal.complementaryPoints = {
+      northNode: complementaryPosition("northNode", "Câncer"),
+      southNode: complementaryPosition("southNode", "Virgem"),
+      lilith: complementaryPosition("lilith", "Virgem"),
+      chiron: complementaryPosition("chiron", "Libra"),
+      partOfFortune: complementaryPosition("partOfFortune", "Libra"),
+      vertex: complementaryPosition("vertex", "Escorpião"),
+    };
+
+    expect(calculateAstrologicalRadar(natal)).toEqual([
+      { sign: "Virgem", positions: ["Meio do Céu", "Fundo do Céu", "Nodo Sul", "Lilith"] },
+      { sign: "Câncer", positions: ["Ascendente", "Descendente", "Nodo Norte"] },
+      { sign: "Libra", positions: ["Quíron", "Parte da Fortuna"] },
+      { sign: "Escorpião", positions: ["Plutão", "Vértice"] },
+    ]);
+  });
+
+  it("contabiliza os dez planetas quando estão disponíveis", () => {
+    const natal = emptyNatal();
+    const planets: PlanetId[] = ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune", "pluto"];
+    for (const planet of planets) natal[planet] = planetPosition(planet, "Áries");
+
+    expect(calculateAstrologicalRadar(natal)).toEqual([{
+      sign: "Áries",
+      positions: ["Sol", "Lua", "Mercúrio", "Vênus", "Marte", "Júpiter", "Saturno", "Urano", "Netuno", "Plutão"],
+    }]);
+  });
+
+  it("ignora pontos complementares marcados como indisponíveis", () => {
+    const natal = emptyNatal();
+    natal.sun = planetPosition("sun", "Áries");
+    natal.complementaryPoints = {
+      northNode: { ...complementaryPosition("northNode", "Áries"), sign: "Áries", status: "unavailable" },
+    };
+
+    expect(calculateAstrologicalRadar(natal)).toEqual([]);
+  });
+
+  it("mantém a ordem zodiacal original em empates", () => {
+    const natal = emptyNatal();
+    natal.sun = planetPosition("sun", "Áries");
+    natal.moon = planetPosition("moon", "Áries");
+    natal.mercury = planetPosition("mercury", "Touro");
+    natal.venus = planetPosition("venus", "Touro");
+    expect(calculateAstrologicalRadar(natal).map((item) => item.sign)).toEqual(["Áries", "Touro"]);
   });
 });
