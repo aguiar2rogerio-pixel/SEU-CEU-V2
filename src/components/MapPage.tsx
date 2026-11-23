@@ -3,7 +3,7 @@ import { BookOpen, CircleDot, Moon, Orbit, ShieldCheck, Sparkles, Sun } from "lu
 import { SectionHeading } from "./SectionHeading";
 import type { ReadingExperienceId } from "./ReadingExperiencePage";
 import { PLANETS, planetName } from "../lib/ephemeris";
-import { formatDegrees, formatDegreesMinutes } from "../lib/formatters";
+import { formatDegreesMinutes } from "../lib/formatters";
 import { calculateProfilePlacidus } from "../lib/houses/profile-placidus";
 import type { BirthProfile, ComplementaryPointId, ComplementaryPointPosition, NatalAngle, PlanetPosition, WeeklyBundle } from "../lib/types";
 
@@ -30,8 +30,13 @@ const ANGLES: { id: keyof NonNullable<WeeklyBundle["natal"]["angles"]>; name: st
   { id: "imumCoeli", name: "Fundo do Céu", short: "IC", detail: "Raízes e intimidade" },
 ];
 
+function minuteFromLongitude(longitude: number): number {
+  const degreesWithinSign = ((longitude % 30) + 30) % 30;
+  return Math.floor((degreesWithinSign - Math.floor(degreesWithinSign)) * 60);
+}
+
 function minuteFromPosition(position: PlanetPosition): number {
-  return Math.floor((position.degree - Math.floor(position.degree)) * 60);
+  return minuteFromLongitude(position.longitude);
 }
 
 function positionLabel(position: { degree: number; minute?: number | null }): string {
@@ -131,8 +136,8 @@ export function MapPage({ profile, bundle, birthTimeLabel, onOpenExperience }: M
             const angleLabel = cusp.house === 1 ? "Ascendente" : cusp.house === 4 ? "Fundo do Céu · IC" : cusp.house === 7 ? "Descendente" : cusp.house === 10 ? "Meio do Céu · MC" : null;
             return <article className="house-card" key={cusp.house} aria-label={`Casa ${cusp.house}`}>
               <div className="house-card__topline"><span>CASA {cusp.house}</span>{angleLabel && <span className="house-card__angle">{angleLabel}</span>}</div>
-              <div className="house-card__cusp"><strong>{cusp.sign}</strong><span>{formatDegrees(cusp.degree)}</span></div>
-              <div className="house-card__occupants"><span className="house-card__caption">PLANETAS NESTA CASA</span>{bundle ? occupants.length > 0 ? <div className="house-planet-list">{occupants.map((planet) => { const position = bundle.natal[planet.id]; return <span className="house-planet-chip" key={planet.id}><strong>{planetName(planet.id)}</strong>{position && <small>{position.sign} · {formatDegrees(position.degree)}</small>}</span>; })}</div> : <p className="house-card__empty">Nenhum planeta nesta casa</p> : <p className="house-card__empty">Posições planetárias indisponíveis</p>}</div>
+              <div className="house-card__cusp"><strong>{cusp.sign}</strong><span>{formatDegreesMinutes(cusp.degree, minuteFromLongitude(cusp.longitude))}</span></div>
+              <div className="house-card__occupants"><span className="house-card__caption">PLANETAS NESTA CASA</span>{bundle ? occupants.length > 0 ? <div className="house-planet-list">{occupants.map((planet) => { const position = bundle.natal[planet.id]; return <span className="house-planet-chip" key={planet.id}><strong>{planetName(planet.id)}</strong>{position && <small>{position.sign} · {formatDegreesMinutes(position.degree, minuteFromPosition(position))}</small>}</span>; })}</div> : <p className="house-card__empty">Nenhum planeta nesta casa</p> : <p className="house-card__empty">Posições planetárias indisponíveis</p>}</div>
             </article>;
           })}</div>
           <p className="house-method-note">A cúspide indica o início de cada casa. A posição dos planetas usa as longitudes já calculadas pelo aplicativo, sem recalcular os planetas.</p>
