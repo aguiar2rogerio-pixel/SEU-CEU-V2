@@ -26,8 +26,8 @@ export function ReadingCard({ reading, compact = false }: Props) {
       <div className="reading-card__action"><ArrowUpRight size={16} aria-hidden="true" /><span>{reading.action}</span></div>
       {!compact && (
         <div className="advice-grid">
-          <div className="advice-item"><BriefcaseBusiness size={16} aria-hidden="true" /><div><span>Trabalho e prioridades</span><p>{reading.career}</p></div></div>
-          <div className="advice-item"><Heart size={16} aria-hidden="true" /><div><span>Relações e vínculos</span><p>{reading.relationships}</p></div></div>
+          <div className="advice-item"><BriefcaseBusiness size={16} aria-hidden="true" /><div><span>{reading.basis === "aspecto-pessoal" ? "Trabalho e prioridades" : "Reflexão geral para trabalho e prioridades"}</span><p>{reading.career}</p></div></div>
+          <div className="advice-item"><Heart size={16} aria-hidden="true" /><div><span>{reading.basis === "aspecto-pessoal" ? "Relações e vínculos" : "Reflexão geral para relações e vínculos"}</span><p>{reading.relationships}</p></div></div>
         </div>
       )}
     </article>

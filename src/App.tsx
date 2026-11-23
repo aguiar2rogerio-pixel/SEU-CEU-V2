@@ -406,6 +406,7 @@ function App() {
         {tab === "week" && (
           <WeekPage
             days={bundle?.days ?? []}
+            readings={bundle?.readings ?? []}
             shortRange={shortRange}
             calculatedAt={bundle?.calculatedAt ?? null}
             todayISO={todayISO}
