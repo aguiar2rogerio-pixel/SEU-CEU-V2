@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, Check, Home, Map, Orbit, ShieldCheck, Sparkles, Sun, WifiOff, X } from "lucide-react";
 import { ProfileForm } from "./components/ProfileForm";
 import { TodayPage } from "./components/TodayPage";
-import { MapPage } from "./components/MapPage";
+import { MapPage, type MapPanelId } from "./components/MapPage";
+import { RadarPage } from "./components/RadarPage";
 import { WeekPage } from "./components/WeekPage";
 import { ProfilePage } from "./components/ProfilePage";
 import { PillarsPreview } from "./components/PillarsPreview";
@@ -99,6 +100,8 @@ function App() {
   const [installEvent, setInstallEvent] = useState<Event | null>(null);
 
   const [readingExperience, setReadingExperience] = useState<ReadingExperienceId | null>(null);
+  const [radarOpen, setRadarOpen] = useState(false);
+  const [openMapPanels, setOpenMapPanels] = useState<MapPanelId[]>([]);
   const [savedReadings, setSavedReadings] = useState<Record<ReadingExperienceId, string>>(() => ({ natal: loadSavedReading("natal"), current: loadSavedReading("current"), yearly: loadSavedReading("yearly") }));
   const [inputReading, setInputReading] = useState<string>("");
   const [isEditingReading, setIsEditingReading] = useState<boolean>(false);
@@ -262,10 +265,17 @@ function App() {
   }
 
   function openReadingExperience(experience: ReadingExperienceId) {
+    setRadarOpen(false);
     setReadingExperience(experience);
     setInputReading(savedReadings[experience]);
     setIsEditingReading(false);
     setCopiedPromptType(null);
+  }
+
+  function toggleMapPanel(panel: MapPanelId) {
+    setOpenMapPanels((current) => current.includes(panel)
+      ? current.filter((item) => item !== panel)
+      : [...current, panel]);
   }
 
   function copyReadingPrompt() {
@@ -353,7 +363,7 @@ function App() {
             isRecalculating={isRecalculating}
             onRecalculate={recalculate}
             onShowWeek={() => { setTab("week"); setSelectedDate(todayISO); }}
-            onShowMap={() => { setReadingExperience(null); setTab("map"); }}
+            onShowMap={() => { setReadingExperience(null); setRadarOpen(false); setTab("map"); }}
           />
         )}
 
@@ -377,11 +387,18 @@ function App() {
           />
         )}
 
-        {tab === "map" && !readingExperience && (
+        {tab === "map" && radarOpen && !readingExperience && (
+          <RadarPage natal={bundle?.natal ?? null} onBack={() => setRadarOpen(false)} />
+        )}
+
+        {tab === "map" && !readingExperience && !radarOpen && (
           <MapPage
             profile={profile}
             bundle={bundle}
             birthTimeLabel={birthTimeLabel}
+            openPanels={openMapPanels}
+            onTogglePanel={toggleMapPanel}
+            onOpenRadar={() => { setReadingExperience(null); setRadarOpen(true); }}
             onOpenExperience={openReadingExperience}
           />
         )}
@@ -419,7 +436,7 @@ function App() {
       {hasTestAccess && (
         <nav className="bottom-nav" aria-label="Navegação principal">
           {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
-              <button key={id} className={`nav-item ${tab === id ? "is-active" : ""}`} onClick={() => { if (id === "map") setReadingExperience(null); setTab(id); }} aria-current={tab === id ? "page" : undefined}>
+              <button key={id} className={`nav-item ${tab === id ? "is-active" : ""}`} onClick={() => { if (id === "map") { setReadingExperience(null); setRadarOpen(false); } setTab(id); }} aria-current={tab === id ? "page" : undefined}>
               <Icon size={20} strokeWidth={tab === id ? 2.2 : 1.7} aria-hidden="true" /><span>{label}</span>
             </button>
           ))}
