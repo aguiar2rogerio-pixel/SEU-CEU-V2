@@ -1,4 +1,4 @@
-import { Check, ChevronLeft, Copy, FileText, Sparkles, Trash2 } from "lucide-react";
+import { Check, ChevronLeft, Copy, FileText, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
 import { SectionHeading } from "./SectionHeading";
 import type { BirthProfile, NatalChart, WeeklyBundle } from "../lib/types";
 
@@ -68,6 +68,26 @@ export function ReadingExperiencePage({ experience, natal, bundle, savedText, in
           {copied ? "Prompt copiado" : content.button}
         </button>
         <small>O prompt não envia seus dados automaticamente. Você escolhe quando e onde usar a leitura.</small>
+      </section>
+
+      <section className="reading-notices" aria-label="Privacidade, segurança e funcionamento">
+        <div className="reading-notice reading-notice--security">
+          <ShieldCheck size={19} aria-hidden="true" />
+          <div>
+            <span className="eyebrow">PRIVACIDADE E SEGURANÇA</span>
+            <p>O SEU CÉU não possui conexão direta com ferramentas externas de inteligência artificial e não envia seus dados automaticamente.</p>
+            <p>Você escolhe qual IA deseja utilizar e decide quando e onde compartilhar as informações do seu mapa.</p>
+            <p className="reading-notice__safety">Antes de colar o conteúdo na IA escolhida, leia e confira o que está sendo solicitado e quais informações serão compartilhadas. Isso é importante para sua segurança.</p>
+          </div>
+        </div>
+        <div className="reading-notice reading-notice--how">
+          <FileText size={18} aria-hidden="true" />
+          <div>
+            <span className="eyebrow">COMO FUNCIONA</span>
+            <p>O SEU CÉU prepara o conteúdo do prompt localmente. Copie o conteúdo e utilize na ferramenta de inteligência artificial de sua preferência.</p>
+            <p>A interpretação será realizada fora do aplicativo.</p>
+          </div>
+        </div>
       </section>
 
       <section className="section-block saved-reading-section" aria-label="Leitura guardada">
