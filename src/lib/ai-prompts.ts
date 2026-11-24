@@ -98,8 +98,19 @@ ${anglesList}
 PRINCIPAIS ASPECTOS NATAIS CALCULADOS:
 ${generateNatalAspects(natal)}
 
-PONTOS COMPLEMENTARES DISPONÍVEIS:
+	PONTOS COMPLEMENTARES DISPONÍVEIS:
 ${complementaryList || "- Nenhum ponto complementar disponível."}`;
+}
+
+function generateNatalHouses(natal: NatalChart): string {
+  const houses = natal.houses;
+  if (!houses || houses.status === "unavailable" || houses.cusps.length !== 12) {
+    return "- Casas astrológicas não disponíveis.";
+  }
+
+  return houses.cusps
+    .map((cusp) => `- Casa ${cusp.house}: ${cusp.sign} (${formatDegrees(cusp.degree)})`)
+    .join("\n");
 }
 
 // Generates a complete prompt for a Natal Chart reading
@@ -127,9 +138,92 @@ REGRAS RIGOROSAS DE FORMATAÇÃO:
 - Mantenha o tom acolhedor, objetivo e focado em desenvolvimento pessoal.`;
 }
 
+export function generateDepthPrompt(profile: BirthProfile, natal: NatalChart | null, question: string): string {
+  if (!natal || !question.trim()) return "";
+
+  return `PAPEL
+
+Você é um astrólogo experiente, com abordagem acolhedora, cuidadosa e voltada ao autoconhecimento prático.
+
+Sua tarefa é aprofundar um assunto específico da vida da pessoa a partir do conjunto de informações do seu mapa natal.
+
+OBJETIVO DA LEITURA
+
+A pessoa deseja compreender melhor o seguinte assunto ou questão:
+
+${question.trim()}
+
+Analise o mapa natal fornecido e selecione os indicadores astrológicos que realmente contribuam para compreender essa questão.
+
+Você receberá os dados completos do mapa natal. Isso não significa que deva interpretar todas as posições. Selecione e integre apenas os elementos pertinentes ao assunto.
+
+Considere, quando contribuírem para a análise:
+
+- Planetas e seus posicionamentos por signo e casa.
+- Ascendente, Meio do Céu e demais ângulos.
+- Regências e relações entre casas, quando estiverem disponíveis nos dados.
+- Aspectos planetários e suas configurações.
+- Pontos complementares disponíveis.
+
+Não reduza a interpretação a um único planeta, signo ou casa. Considere o conjunto do mapa e as relações entre seus elementos.
+
+Não utilize correspondências rígidas ou fórmulas automáticas para cada assunto. Analise os indicadores em conjunto, respeitando as particularidades da pergunta.
+
+ESTRUTURA DA RESPOSTA
+
+Organize a interpretação em quatro eixos:
+
+1. O que seu mapa revela sobre esse assunto
+
+Apresente uma interpretação integrada dos indicadores mais relevantes, explicando como eles se relacionam com a questão apresentada.
+
+2. Seus potenciais
+
+Identifique recursos, talentos, facilidades e possibilidades que podem ser desenvolvidos nesse campo.
+
+3. Seus desafios
+
+Apresente tensões, dificuldades ou padrões que mereçam atenção, sem transformar tendências astrológicas em limitações ou certezas.
+
+4. Caminhos de desenvolvimento
+
+Ofereça reflexões e possibilidades práticas de autoconhecimento, considerando o que foi identificado no mapa.
+
+ORIENTAÇÕES IMPORTANTES
+
+- Responda especificamente à pergunta apresentada.
+- Não produza uma nova leitura natal completa.
+- Não repita conteúdos genéricos que poderiam servir para qualquer pessoa.
+- Não descreva posições isoladamente. Integre os indicadores relevantes.
+- Não invente posições, aspectos, casas, regências ou informações ausentes.
+- Se algum dado necessário não estiver disponível, reconheça essa limitação.
+- Não force interpretações quando determinado indicador não contribuir para a questão.
+- Utilize linguagem natural, clara, acolhedora e aprofundada.
+- Evite determinismo, previsões categóricas e afirmações absolutas.
+- Não transforme interpretações astrológicas em diagnósticos ou orientações médicas, psicológicas, jurídicas, profissionais ou financeiras.
+- Não apresente os quatro eixos como tópicos artificiais quando algum deles não tiver conteúdo relevante. Preserve a naturalidade e a coerência da interpretação.
+
+A resposta deve ser específica, consistente e focada no tema escolhido pela pessoa.
+
+DADOS DO MAPA NATAL
+
+${generateNatalData(profile, natal)}
+
+CASAS ASTROLÓGICAS
+
+${generateNatalHouses(natal)}
+
+RELAÇÕES ENTRE CASAS E REGÊNCIAS
+
+Os dados de planetas por casa, ângulos e cúspides acima são as relações disponibilizadas pelo aplicativo. Não há uma tabela de regências explícitas neste cálculo; não invente regências que não estejam nos dados.
+
+---`;
+}
+
 // Generates a prompt for a Weekly Transit reading
 export function generateWeeklyPrompt(
   profile: BirthProfile,
+  natal: NatalChart,
   selectedDay: DailyEphemeris,
   weekRange: string
 ): string {
@@ -153,7 +247,10 @@ export function generateWeeklyPrompt(
 
   return `Atue como um astrólogo e mentor pessoal de autoconhecimento.
 
-Analise o panorama astrológico do dia ${selectedDay.date} (Semana: ${weekRange}) para ${profile.name}:
+Analise o panorama astrológico do dia ${selectedDay.date} (Semana: ${weekRange}) para ${profile.name}.
+
+DADOS DO USUÁRIO E MAPA NATAL:
+${generateNatalData(profile, natal)}
 
 CONTEXTO LUNAR:
 - Fase: ${moon.name}
@@ -201,35 +298,6 @@ Organize a leitura nas seguintes seções, sem repetir a mesma análise:
 6. Uma prática simples para a semana.
 
 Use as casas e os ângulos natais para contextualizar os temas quando houver base nos dados. Dê prioridade aos trânsitos e aspectos calculados para o período, sem transformar os aspectos natais em previsões atuais. Não invente posições ou aspectos que não foram fornecidos e não faça previsões deterministas.
-
-REGRAS RIGOROSAS DE FORMATAÇÃO:
-- Responda APENAS em texto Markdown limpo e formatado.
-- NÃO inclua imagens, links, URLs ou markdown de mídia (![imagem](...)).`;
-}
-
-export function generateYearlyPrompt(profile: BirthProfile, natal: NatalChart | null): string {
-  if (!natal) return "";
-
-  return `Atue como um astrólogo experiente, acolhedor e responsável. Crie uma leitura anual personalizada para ${profile.name} sobre 2027 usando exclusivamente o mapa natal abaixo.
-
-MAPA NATAL:
-${generateNatalData(profile, natal)}
-
-A leitura deve mostrar como os padrões, recursos e potenciais presentes nos signos, casas, aspectos e ângulos do mapa natal podem ser reconhecidos e cultivados ao longo de 2027, com foco em presença, escolhas e autoconhecimento. Os quatro períodos do ano devem funcionar como marcos de reflexão e acompanhamento — janeiro a março, abril a junho, julho a setembro e outubro a dezembro — e não como previsões de acontecimentos externos.
-
-Organize a leitura nas seguintes seções, sem criar seções alternativas, repetir a mesma análise ou incluir a estrutura do prompt de mapa natal:
-1. Visão geral do ano, destacando os padrões natais mais importantes.
-2. Identidade e desenvolvimento.
-3. Trabalho e vocação, considerando o Meio do Céu, a Casa 10 e os aspectos relevantes quando disponíveis.
-4. Relações, considerando o Descendente, a Casa 7 e os aspectos relevantes quando disponíveis.
-5. Bem-estar, relacionando necessidades emocionais, recursos pessoais e os dados natais fornecidos.
-6. Janeiro a março.
-7. Abril a junho.
-8. Julho a setembro.
-9. Outubro a dezembro.
-10. Perguntas práticas de reflexão para acompanhar o ano.
-
-Use os quatro períodos como convites para observar e cultivar temas do mapa, não para atribuir acontecimentos ou trânsitos específicos a cada trimestre. Use os pontos complementares apenas quando ajudarem a aprofundar um padrão já identificado. Indique tendências como possibilidades de reflexão e cultivo, não como certezas. Não invente trânsitos, revolução solar, posições planetárias, acontecimentos ou informações que não foram fornecidos. Não prometa acontecimentos e não faça previsões deterministas.
 
 REGRAS RIGOROSAS DE FORMATAÇÃO:
 - Responda APENAS em texto Markdown limpo e formatado.

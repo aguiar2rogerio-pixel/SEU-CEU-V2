@@ -8,7 +8,7 @@ import { WeekPage } from "./components/WeekPage";
 import { ProfilePage } from "./components/ProfilePage";
 import { PillarsPreview } from "./components/PillarsPreview";
 import { ReadingExperiencePage, type ReadingExperienceId } from "./components/ReadingExperiencePage";
-import { generateCurrentPrompt, generateNatalPrompt, generateWeeklyPrompt, generateYearlyPrompt } from "./lib/ai-prompts";
+import { generateCurrentPrompt, generateDepthPrompt, generateNatalPrompt, generateWeeklyPrompt } from "./lib/ai-prompts";
 import { findGlobalAspects } from "./lib/aspects";
 import { downloadBackup, parseBackup } from "./lib/backup";
 import { calculateNatalChart, calculateWeek, currentLocalISODate, EPHEMERIS_MODEL_VERSION, formatWeekRange, getMondayISO } from "./lib/ephemeris";
@@ -106,6 +106,8 @@ function App() {
   const [inputReading, setInputReading] = useState<string>("");
   const [isEditingReading, setIsEditingReading] = useState<boolean>(false);
   const [copiedPromptType, setCopiedPromptType] = useState<string | null>(null);
+  const [depthQuestion, setDepthQuestion] = useState<string>("");
+  const [depthPrompt, setDepthPrompt] = useState<string>("");
 
   useEffect(() => {
     const capture = (event: Event) => {
@@ -242,6 +244,8 @@ function App() {
       setBundle(null);
       setSavedReadings({ natal: "", current: "", yearly: "" });
       setReadingExperience(null);
+      setDepthQuestion("");
+      setDepthPrompt("");
       setHasTestAccess(false);
       setTab("pillars");
       setSuccess("");
@@ -270,6 +274,16 @@ function App() {
     setInputReading(savedReadings[experience]);
     setIsEditingReading(false);
     setCopiedPromptType(null);
+    if (experience === "yearly") {
+      setDepthQuestion("");
+      setDepthPrompt("");
+    }
+  }
+
+  function updateDepthQuestion(value: string) {
+    setDepthQuestion(value);
+    setDepthPrompt("");
+    setCopiedPromptType(null);
   }
 
   function toggleMapPanel(panel: MapPanelId) {
@@ -284,8 +298,15 @@ function App() {
       ? generateNatalPrompt(profile, bundle.natal)
       : readingExperience === "current"
         ? generateCurrentPrompt(profile, bundle.natal, bundle)
-        : generateYearlyPrompt(profile, bundle.natal);
+        : depthPrompt;
+    if (!prompt) return;
     copyToClipboard(prompt, `reading-${readingExperience}`);
+  }
+
+  function exploreDepthMap() {
+    if (!bundle || !profile || !depthQuestion.trim()) return;
+    setDepthPrompt(generateDepthPrompt(profile, bundle.natal, depthQuestion));
+    setCopiedPromptType(null);
   }
 
   function saveCurrentReading() {
@@ -384,6 +405,10 @@ function App() {
             onInputChange={setInputReading}
             onSave={saveCurrentReading}
             onCancelEdit={() => setIsEditingReading(false)}
+            depthQuestion={depthQuestion}
+            depthPromptReady={Boolean(depthPrompt)}
+            onDepthQuestionChange={updateDepthQuestion}
+            onDepthExplore={exploreDepthMap}
           />
         )}
 
@@ -416,7 +441,7 @@ function App() {
             copiedPromptType={copiedPromptType}
             onSelectDate={setSelectedDate}
             onCopyWeeklyPrompt={() => {
-              if (selectedSky) copyToClipboard(generateWeeklyPrompt(profile, selectedSky, shortRange), "week");
+              if (selectedSky && bundle) copyToClipboard(generateWeeklyPrompt(profile, bundle.natal, selectedSky, shortRange), "week");
             }}
           />
         )}

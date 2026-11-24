@@ -20,6 +20,10 @@ type Props = {
   onInputChange: (value: string) => void;
   onSave: () => void;
   onCancelEdit: () => void;
+  depthQuestion: string;
+  depthPromptReady: boolean;
+  onDepthQuestionChange: (value: string) => void;
+  onDepthExplore: () => void;
 };
 
 const CONTENT: Record<ReadingExperienceId, { eyebrow: string; title: string; intro: string; detail: string; button: string }> = {
@@ -38,17 +42,27 @@ const CONTENT: Record<ReadingExperienceId, { eyebrow: string; title: string; int
     button: "Copiar prompt do momento atual",
   },
   yearly: {
-    eyebrow: "MEU CÉU EM 2027",
-    title: "Um ano para atravessar com presença.",
-    intro: "Uma leitura anual personalizada, organizada por temas e períodos para ajudar você a observar os movimentos de 2027.",
-    detail: "O prompt leva os dados do seu mapa para uma leitura anual. A interpretação pode ser guardada e consultada depois.",
-    button: "Copiar prompt de 2027",
+    eyebrow: "MEU MAPA EM PROFUNDIDADE",
+    title: "Descubra outras dimensões do seu mapa natal.",
+    intro: "Você pode escolher um assunto ou escrever sua própria pergunta.",
+    detail: "O prompt será preparado localmente a partir da sua pergunta e dos dados do seu mapa natal.",
+    button: "Copiar prompt",
   },
 };
 
-export function ReadingExperiencePage({ experience, natal, bundle, savedText, inputText, copied, isEditing, onBack, onCopyPrompt, onEdit, onClear, onInputChange, onSave, onCancelEdit }: Props) {
+const DEPTH_SUGGESTIONS = [
+  "Minha vida profissional e vocação",
+  "Amor e relacionamentos",
+  "Família e convivência",
+  "Dinheiro e realização material",
+  "Talentos e potenciais",
+  "Amizades e vida social",
+];
+
+export function ReadingExperiencePage({ experience, natal, bundle, savedText, inputText, copied, isEditing, onBack, onCopyPrompt, onEdit, onClear, onInputChange, onSave, onCancelEdit, depthQuestion, depthPromptReady, onDepthQuestionChange, onDepthExplore }: Props) {
   const content = CONTENT[experience];
   const hasData = Boolean(natal || bundle);
+  const isDepthExperience = experience === "yearly";
 
   return (
     <>
@@ -60,14 +74,47 @@ export function ReadingExperiencePage({ experience, natal, bundle, savedText, in
       </section>
 
       <section className="reading-experience-card">
-        <SectionHeading eyebrow="COMO FUNCIONA" title="Uma experiência só sua" />
-        <p>{content.detail}</p>
-        {!hasData && <p className="reading-experience-warning">Seu mapa ainda está sendo calculado. Aguarde alguns instantes e tente novamente.</p>}
-        <button className="button button--primary reading-experience-copy" onClick={onCopyPrompt} disabled={!hasData}>
-          {copied ? <Check size={17} aria-hidden="true" /> : <Copy size={17} aria-hidden="true" />}
-          {copied ? "Prompt copiado" : content.button}
-        </button>
-        <small>O prompt não envia seus dados automaticamente. Você escolhe quando e onde usar a leitura.</small>
+        {isDepthExperience ? (
+          <>
+            <SectionHeading eyebrow="EXPLORE SEU MAPA" title="O que você gostaria de compreender melhor?" />
+            <p>{content.detail}</p>
+            {!hasData && <p className="reading-experience-warning">Seu mapa ainda está sendo calculado. Aguarde alguns instantes e tente novamente.</p>}
+            <div className="depth-suggestions" aria-label="Sugestões de assuntos">
+              {DEPTH_SUGGESTIONS.map((suggestion) => (
+                <button className="depth-suggestion" type="button" key={suggestion} onClick={() => onDepthQuestionChange(suggestion)}>{suggestion}</button>
+              ))}
+            </div>
+            <label className="depth-question-label" htmlFor="depth-question">Sua pergunta</label>
+            <textarea
+              id="depth-question"
+              className="depth-question"
+              rows={4}
+              value={depthQuestion}
+              onChange={(event) => onDepthQuestionChange(event.target.value)}
+              placeholder="Escreva sua pergunta sobre seu mapa natal..."
+            />
+            <small className="depth-question-hint">Quanto mais específica for sua pergunta, mais direcionada poderá ser a interpretação.</small>
+            <button className="button button--primary reading-experience-copy" type="button" onClick={onDepthExplore} disabled={!hasData || !depthQuestion.trim()}>
+              <Sparkles size={17} aria-hidden="true" /> Explorar meu mapa
+            </button>
+            {depthPromptReady && <div className="depth-prompt-ready" role="status"><strong>Seu prompt está pronto!</strong><span>Revise sua pergunta se quiser e gere uma nova exploração antes de copiar.</span></div>}
+            {depthPromptReady && <button className="button button--secondary reading-experience-copy depth-copy" type="button" onClick={onCopyPrompt}>
+              {copied ? <Check size={17} aria-hidden="true" /> : <Copy size={17} aria-hidden="true" />}
+              {copied ? "Prompt copiado" : content.button}
+            </button>}
+          </>
+        ) : (
+          <>
+            <SectionHeading eyebrow="COMO FUNCIONA" title="Uma experiência só sua" />
+            <p>{content.detail}</p>
+            {!hasData && <p className="reading-experience-warning">Seu mapa ainda está sendo calculado. Aguarde alguns instantes e tente novamente.</p>}
+            <button className="button button--primary reading-experience-copy" type="button" onClick={onCopyPrompt} disabled={!hasData}>
+              {copied ? <Check size={17} aria-hidden="true" /> : <Copy size={17} aria-hidden="true" />}
+              {copied ? "Prompt copiado" : content.button}
+            </button>
+            <small>O prompt não envia seus dados automaticamente. Você escolhe quando e onde usar a leitura.</small>
+          </>
+        )}
       </section>
 
       <section className="reading-notices" aria-label="Privacidade, segurança e funcionamento">
@@ -84,7 +131,7 @@ export function ReadingExperiencePage({ experience, natal, bundle, savedText, in
           <FileText size={18} aria-hidden="true" />
           <div>
             <span className="eyebrow">COMO FUNCIONA</span>
-            <p>O SEU CÉU prepara o conteúdo do prompt localmente. Copie o conteúdo e utilize na ferramenta de inteligência artificial de sua preferência.</p>
+            <p>O SEU CÉU prepara localmente um prompt com base na sua pergunta e nos dados do seu mapa natal. Copie o conteúdo e utilize na ferramenta de inteligência artificial de sua preferência.</p>
             <p>A interpretação será realizada fora do aplicativo.</p>
           </div>
         </div>

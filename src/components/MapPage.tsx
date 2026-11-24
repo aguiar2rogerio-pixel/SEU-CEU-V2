@@ -40,7 +40,7 @@ const PANEL_META: Record<MapPanelId, { eyebrow: string; title: string; summary: 
   points: { eyebrow: "PONTOS COMPLEMENTARES", title: "Outras chaves de leitura", summary: "Nodos, Lilith, Quíron, Fortuna e Vértice como camadas adicionais." },
   houses: { eyebrow: "SISTEMA PLACIDUS", title: "As 12 casas", summary: "Áreas da vida, cúspides e planetas posicionados em cada casa." },
   radar: { eyebrow: "ORIENTAÇÃO PERSONALIZADA", title: "Radar Astrológico", summary: "Descubra quais signos do seu mapa merecem mais atenção nas previsões." },
-  readings: { eyebrow: "LEITURAS PERSONALIZADAS", title: "Escolha por onde se aprofundar", summary: "Três experiências para interpretar seu mapa, seu momento e seu próximo ano." },
+  readings: { eyebrow: "LEITURAS PERSONALIZADAS", title: "Escolha por onde se aprofundar", summary: "Três experiências para interpretar seu mapa, seu momento e outras dimensões pessoais." },
 };
 
 function minuteFromLongitude(longitude: number): number {
@@ -127,7 +127,7 @@ export function MapPage({ profile, bundle, birthTimeLabel, openPanels, onToggleP
       </MapPanel>
 
       <MapPanel id="readings" open={isOpen("readings")} onToggle={() => onTogglePanel("readings")}>
-        <div className="interpretation-choice-grid"><button className="interpretation-choice" onClick={() => onOpenExperience("natal")}><Sparkles size={18} /><span><strong>Meu Mapa Natal</strong><small>Uma leitura integrada e permanente do seu mapa.</small></span><BookOpen size={16} /></button><button className="interpretation-choice" onClick={() => onOpenExperience("current")}><Orbit size={18} /><span><strong>Meu Momento Atual</strong><small>Trânsitos e ciclos em relação ao seu mapa.</small></span><BookOpen size={16} /></button><button className="interpretation-choice" onClick={() => onOpenExperience("yearly")}><Sun size={18} /><span><strong>Meu Céu em 2027</strong><small>Uma leitura anual organizada por períodos.</small></span><BookOpen size={16} /></button></div>
+        <div className="interpretation-choice-grid"><button className="interpretation-choice" onClick={() => onOpenExperience("natal")}><Sparkles size={18} /><span><strong>Meu Mapa Natal</strong><small>Uma leitura integrada e permanente do seu mapa.</small></span><BookOpen size={16} /></button><button className="interpretation-choice" onClick={() => onOpenExperience("current")}><Orbit size={18} /><span><strong>Meu Momento Atual</strong><small>Trânsitos e ciclos em relação ao seu mapa.</small></span><BookOpen size={16} /></button><button className="interpretation-choice" onClick={() => onOpenExperience("yearly")}><Sun size={18} /><span><strong>Meu Mapa em Profundidade</strong><small>Explore uma pergunta específica do seu mapa natal.</small></span><BookOpen size={16} /></button></div>
       </MapPanel>
     </>
   );
