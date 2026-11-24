@@ -177,11 +177,16 @@ button:disabled { cursor: wait; opacity: .55; }
 .week-day.is-today:not(.is-active) { border-color: rgba(182,168,223,.32); }
 .week-day i { position: absolute; bottom: 5px; width: 3px; height: 3px; border-radius: 50%; background: var(--gold); }
 .week-day small { min-height: 18px; max-width: 100%; overflow: hidden; font-size: .49rem; line-height: 1.1; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.week-day__moon-phase { min-height: auto !important; color: var(--gold-light); font-size: .52rem !important; font-weight: 600; }
+.week-day__moon-sign { min-height: auto !important; color: var(--muted-2); font-size: .5rem !important; }
 .week-day__status--personal { color: var(--gold-light); }
 .week-day__status--general { color: var(--muted-2); }
 .week-overview { padding: 16px 15px 13px; border: 1px solid var(--line); border-radius: 16px; background: rgba(27,25,41,.48); }
 .week-overview__heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .week-overview__heading p { margin: 0; color: var(--muted-2); font-size: .68rem; line-height: 1.45; text-align: right; }
+.week-overview__heading > div { min-width: 0; }
+.week-overview__heading > div p { margin-top: 5px; color: #d0c9dc; font-size: .78rem; text-align: left; }
+.week-overview__hint { max-width: 190px; color: var(--muted-2); font-size: .66rem; line-height: 1.4; text-align: right; }
 .week-overview .week-strip { margin-top: 14px; margin-bottom: 11px; }
 .week-legend { display: flex; flex-wrap: wrap; gap: 8px 15px; color: var(--muted-2); font-size: .65rem; }
 .week-legend span { display: inline-flex; align-items: center; gap: 6px; }
@@ -195,6 +200,18 @@ button:disabled { cursor: wait; opacity: .55; }
 .week-selected-status__badge span { color: var(--muted); font-size: .66rem; line-height: 1.45; }
 .week-selected-status__badge.week-day__status--personal strong { color: var(--gold-light); }
 .week-selected-status__badge.week-day__status--general strong { color: var(--lavender); }
+.moon-day-card { position: relative; display: flex; min-height: 285px; align-items: center; overflow: hidden; margin-top: 24px; padding: 29px 27px; border: 1px solid rgba(217,182,111,.34); border-radius: 19px; background: linear-gradient(135deg, rgba(49,40,61,.94), rgba(27,25,41,.96)); box-shadow: 0 18px 45px rgba(0,0,0,.16); }
+.moon-day-card__content { position: relative; z-index: 1; max-width: 580px; }
+.moon-day-card h2 { margin: 15px 0 0; color: #f4e6c5; font-family: var(--serif); font-size: clamp(2.35rem, 8vw, 4.15rem); font-weight: 400; letter-spacing: -.045em; line-height: .98; }
+.moon-day-card__sign { display: block; margin-top: 4px; color: var(--gold-light); font-family: var(--serif); font-size: clamp(1.65rem, 5vw, 2.45rem); font-weight: 400; }
+.moon-day-card__lunation { margin: 16px 0 0; color: #e6d4aa; font-size: .86rem; font-weight: 600; }
+.moon-day-card__reading { max-width: 500px; margin: 9px 0 0; color: #d0c8d8; font-size: .84rem; line-height: 1.65; }
+.moon-day-card__date { margin: 17px 0 0; color: var(--muted-2); font-size: .7rem; text-transform: capitalize; }
+.moon-day-card__orb { position: absolute; right: -38px; top: -54px; width: 260px; height: 260px; border: 1px solid rgba(240,216,162,.34); border-radius: 50%; opacity: .8; transform: rotate(-18deg) scaleY(.63); }
+.moon-day-card__orb::before, .moon-day-card__orb::after, .moon-day-card__orb span { position: absolute; display: block; border-radius: 50%; content: ""; }
+.moon-day-card__orb::before { inset: 38px; border: 1px solid rgba(182,168,223,.24); }
+.moon-day-card__orb::after { right: 58px; bottom: 27px; width: 7px; height: 7px; background: var(--gold-light); box-shadow: 0 0 14px rgba(240,216,162,.8); }
+.moon-day-card__orb span { right: 93px; top: 44px; width: 5px; height: 5px; background: var(--lavender); box-shadow: 0 0 10px rgba(182,168,223,.8); }
 .week-prompt-section { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-top: 24px; padding: 16px; border: 1px solid rgba(182,168,223,.17); border-radius: 15px; background: rgba(182,168,223,.045); }
 .week-prompt-section p { margin: 5px 0 0; color: var(--muted); font-size: .72rem; line-height: 1.45; }
 .week-prompt-section .button { flex: 0 0 auto; }
@@ -312,8 +329,14 @@ button:disabled { cursor: wait; opacity: .55; }
   .hero-moon span { top: -4px; left: 15px; width: 54px; height: 57px; }
   .week-overview { padding: 13px 10px 11px; }
   .week-overview__heading { align-items: flex-start; flex-direction: column; gap: 5px; }
-  .week-overview__heading p { text-align: left; }
+  .week-overview__heading p, .week-overview__heading > div p { text-align: left; }
+  .week-overview__hint { max-width: none; text-align: left; }
   .week-day small { font-size: .44rem; }
+  .moon-day-card { min-height: 265px; padding: 24px 20px; }
+  .moon-day-card h2 { font-size: clamp(2.1rem, 11vw, 3.2rem); }
+  .moon-day-card__sign { font-size: clamp(1.5rem, 8vw, 2.1rem); }
+  .moon-day-card__reading { max-width: 78%; }
+  .moon-day-card__orb { right: -90px; top: -35px; }
   .week-selected-status { flex-direction: column; gap: 12px; }
   .week-selected-status__badge { max-width: none; width: 100%; }
   .week-prompt-section { align-items: stretch; flex-direction: column; }

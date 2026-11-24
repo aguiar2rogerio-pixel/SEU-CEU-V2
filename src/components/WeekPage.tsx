@@ -1,8 +1,8 @@
-import { Check, RefreshCw, Sparkles } from "lucide-react";
-import { ReadingCard } from "./ReadingCard";
+import { Check, Copy, RefreshCw, Sparkles } from "lucide-react";
 import { SectionHeading } from "./SectionHeading";
 import { formatDateISO, planetName } from "../lib/ephemeris";
 import { formatDegrees } from "../lib/formatters";
+import { getMoonPhaseInfo, getMoonWeekLead } from "../lib/moon-phases";
 import type { DailyEphemeris, DailyReading } from "../lib/types";
 
 type WeekPageProps = {
@@ -23,97 +23,101 @@ function dayName(isoDate: string, short = false): string {
   return formatDateISO(isoDate, { weekday: short ? "short" : "long" });
 }
 
-function readingForDate(readings: DailyReading[], date: string): DailyReading | null {
-  return readings.find((reading) => reading.date === date) ?? null;
-}
-
-function dayStatus(reading: DailyReading | null): { label: string; className: string; description: string } {
-  if (!reading || reading.aspects.length === 0) {
-    return { label: "Reflexão geral", className: "week-day__status--general", description: "Nenhum aspecto pessoal maior calculado" };
-  }
-  const count = reading.aspects.length;
-  return { label: `${count} ${count === 1 ? "aspecto pessoal" : "aspectos pessoais"}`, className: "week-day__status--personal", description: `${count} ${count === 1 ? "aspecto pessoal" : "aspectos pessoais"} calculado${count === 1 ? "" : "s"}` };
+function selectedPromptLabel(selectedDate: string, todayISO: string, copied: boolean): string {
+  if (copied) return selectedDate === todayISO ? "Prompt para leitura de hoje copiado" : `Prompt para leitura de ${formatDateISO(selectedDate, { day: "2-digit", month: "2-digit" })} copiado`;
+  return selectedDate === todayISO ? "Prompt para leitura de hoje" : `Prompt para leitura de ${formatDateISO(selectedDate, { day: "2-digit", month: "2-digit" })}`;
 }
 
 export function WeekPage({
   days,
-  readings,
   shortRange,
   calculatedAt,
   todayISO,
   selectedDate,
-  selectedReading,
   selectedSky,
   copiedPromptType,
   onSelectDate,
   onCopyWeeklyPrompt,
 }: WeekPageProps) {
-  const selectedStatus = dayStatus(selectedReading);
-  const selectedDayLabel = selectedSky ? dayName(selectedSky.date) : "dia selecionado";
+  const selectedMoon = selectedSky ? getMoonPhaseInfo(selectedSky) : null;
+  const weekLead = getMoonWeekLead(days);
+  const copied = copiedPromptType === "week";
 
   return (
     <>
       <section className="page-intro page-intro--week">
-        <span className="eyebrow">COMPARAÇÃO DA SEMANA</span>
+        <span className="eyebrow">ACOMPANHAMENTO DA LUA</span>
         <h1>Sua semana, em perspectiva.</h1>
-        <p>{shortRange} <span className="hero-dot">·</span> Escolha um dia para ver como os movimentos calculados se relacionam com o seu mapa.</p>
+        <p>{shortRange} <span className="hero-dot">·</span> Acompanhe a Lua, a lunação e os movimentos do céu a cada dia.</p>
         <p className="week-calculated-at">Última leitura calculada {calculatedAt ? formatDateISO(calculatedAt.slice(0, 10), { day: "numeric", month: "short" }) : "—"}</p>
       </section>
-
       {days.length > 0 ? (
         <>
-          <section className="week-overview" aria-label="Resumo dos estados da semana">
-            <div className="week-overview__heading"><span className="eyebrow">VISÃO DOS SETE DIAS</span><p>Os marcadores mostram quando há cruzamento pessoal e quando a orientação é geral.</p></div>
+          <section className="week-overview" aria-label="Resumo lunar dos sete dias">
+            <div className="week-overview__heading">
+              <div><span className="eyebrow">A LUA NESTA SEMANA</span><p>{weekLead}</p></div>
+              <span className="week-overview__hint">Escolha um dia para acompanhar sua passagem.</span>
+            </div>
             <div className="week-strip" role="tablist" aria-label="Dias da semana">
               {days.map((day) => {
-                const status = dayStatus(readingForDate(readings, day.date));
+                const moon = getMoonPhaseInfo(day);
                 const isSelected = selectedDate === day.date;
                 return (
                   <button
                     key={day.date}
                     role="tab"
                     aria-selected={isSelected}
-                    aria-label={`${dayName(day.date)}, ${status.description}${day.date === todayISO ? ", hoje" : ""}`}
+                    aria-label={`${dayName(day.date)}, ${moon.label}${day.date === todayISO ? ", hoje" : ""}`}
                     className={`week-day ${isSelected ? "is-active" : ""} ${day.date === todayISO ? "is-today" : ""}`}
                     onClick={() => onSelectDate(day.date)}
                   >
                     <span>{dayName(day.date, true).replace(".", "")}</span>
                     <strong>{Number(day.date.slice(-2))}</strong>
-                    <small className={status.className}>{status.label}</small>
+                    <small className="week-day__moon-phase">{moon.name.replace("Lua ", "")}</small>
+                    <small className="week-day__moon-sign">{moon.sign}</small>
                     {day.date === todayISO && <i aria-label="Hoje" />}
                   </button>
                 );
               })}
             </div>
-            <div className="week-legend" aria-label="Legenda dos estados"><span><i className="week-legend__dot week-legend__dot--personal" />Aspecto pessoal</span><span><i className="week-legend__dot week-legend__dot--general" />Reflexão geral</span></div>
+            <div className="week-legend" aria-label="Legenda da seleção"><span><i className="week-legend__dot week-legend__dot--personal" />Dia selecionado</span><span><i className="week-legend__dot week-legend__dot--general" />Lua e céu geral</span></div>
           </section>
 
-          <section className="week-selected-status" aria-label="Estado do dia selecionado">
-            <div><span className="eyebrow">DIA SELECIONADO</span><h2>{selectedDayLabel}</h2></div>
-            <div className={`week-selected-status__badge ${selectedStatus.className}`}><strong>{selectedStatus.label}</strong><span>{selectedReading?.basis === "aspecto-pessoal" ? "O céu calculado forma um cruzamento com seu mapa." : "Nenhum aspecto pessoal maior foi calculado para este dia. A orientação parte do seu Sol."}</span></div>
-          </section>
+          {selectedSky && selectedMoon ? (
+            <>
+              <section className="moon-day-card" aria-label="Lua do dia selecionado">
+                <div className="moon-day-card__orb" aria-hidden="true"><span /></div>
+                <div className="moon-day-card__content">
+                  <span className="eyebrow eyebrow--gold"><Sparkles size={14} aria-hidden="true" /> LUA DO DIA</span>
+                  <h2>{selectedMoon.name}</h2>
+                  <strong className="moon-day-card__sign">em {selectedMoon.sign}</strong>
+                  <p className="moon-day-card__lunation">{selectedMoon.lunationLabel}</p>
+                  <p className="moon-day-card__reading">{selectedMoon.reading}</p>
+                  <p className="moon-day-card__date">{dayName(selectedSky.date)} · {formatDateISO(selectedSky.date, { day: "numeric", month: "long" })}</p>
+                </div>
+              </section>
 
-          {selectedReading && <section className="section-block"><SectionHeading eyebrow="SUA LEITURA DO DIA" title="Como atravessar este dia" /><ReadingCard reading={selectedReading} /></section>}
-          {!selectedReading && <p className="empty-note">Não há leitura para esta data. Escolha outro dia da semana ou atualize os dados.</p>}
-          {selectedSky && <SkyDetail day={selectedSky} />}
-          {selectedSky && (
-            <section className="week-prompt-section" aria-label="Aprofundar a leitura do dia">
-              <div><span className="eyebrow">APROFUNDE ESTA LEITURA</span><p>Copie os dados deste dia para usar em uma IA de sua preferência.</p></div>
-              <button className="button button--secondary" onClick={onCopyWeeklyPrompt}>
-                {copiedPromptType === "week" ? <Check size={17} /> : <Sparkles size={17} color="#f0c674" />}
-                {copiedPromptType === "week" ? "Prompt deste dia copiado" : "Copiar prompt deste dia"}
-              </button>
-            </section>
+              <SkyDetail day={selectedSky} />
+
+              <section className="week-prompt-section" aria-label="Prompt da leitura do dia">
+                <div><span className="eyebrow">APROFUNDE O DIA SELECIONADO</span><p>Leve a Lua, a lunação e os movimentos deste dia para uma IA de sua preferência.</p></div>
+                <button className="button button--secondary" onClick={onCopyWeeklyPrompt}>
+                  {copied ? <Check size={17} /> : <Copy size={17} color="#f0c674" />}
+                  {selectedPromptLabel(selectedSky.date, todayISO, copied)}
+                </button>
+              </section>
+            </>
+          ) : (
+            <p className="empty-note">Não há dados para esta data. Escolha outro dia da semana ou atualize os dados.</p>
           )}
         </>
       ) : (
         <div className="week-empty" role="status"><RefreshCw size={18} aria-hidden="true" /><p>Estamos calculando sua semana. Os sete dias aparecerão aqui em instantes.</p></div>
       )}
-
       <section className="section-block week-explanation">
         <SectionHeading eyebrow="COMO LER" title="Um convite, não uma sentença" />
-        <p>As posições e os ângulos são calculados no seu dispositivo. Os textos são regras simbólicas simples, não previsões garantidas. Quando não aparece um aspecto pessoal forte, preferimos dizer isso a inventar uma mensagem.</p>
-        <p className="tiny-note">Os dias marcados como reflexão geral não estão sem conteúdo: apenas não possuem um cruzamento pessoal maior segundo as regras atuais. A Lua muda rapidamente. Com horário de nascimento desconhecido, ela fica de fora do cruzamento natal.</p>
+        <p>A fase e o signo da Lua mostram o movimento geral do ciclo. Os textos são convites simbólicos para reflexão, não previsões garantidas. Os movimentos do céu são calculados no seu dispositivo.</p>
+        <p className="tiny-note">A Lua muda de signo a cada dois ou três dias. A lunação começa na Lua Nova e continua enquanto a Lua avança pelas fases seguintes.</p>
       </section>
     </>
   );
@@ -123,7 +127,7 @@ function SkyDetail({ day }: { day: DailyEphemeris }) {
   const aspects = day.globalAspects.slice(0, 4);
   const retrogrades = day.retrogrades.map((id) => planetName(id));
   return (
-    <section className="sky-detail">
+    <section className="sky-detail" aria-label="Movimentos gerais do céu">
       <div className="sky-detail__header">
         <div>
           <span className="eyebrow">MOVIMENTOS GERAIS DO CÉU</span>
@@ -135,21 +139,15 @@ function SkyDetail({ day }: { day: DailyEphemeris }) {
         {aspects.length ? aspects.map((aspect) => (
           <div className="event-row" key={`${aspect.firstPlanet}-${aspect.secondPlanet}-${aspect.type}`}>
             <Sparkles size={15} />
-            <span>
-              <strong>{planetName(aspect.firstPlanet)} {aspect.type} {planetName(aspect.secondPlanet)}</strong>
-              <small>Orbe calculado: {formatDegrees(aspect.orb)}</small>
-            </span>
+            <span><strong>{planetName(aspect.firstPlanet)} {aspect.type} {planetName(aspect.secondPlanet)}</strong><small>Orbe calculado: {formatDegrees(aspect.orb)}</small></span>
           </div>
         )) : <p className="empty-note">Nenhum aspecto maior próximo segundo os orbes desta versão.</p>}
       </div>
       <div className="retrograde-row">
         <RefreshCw size={15} />
-        <span>
-          <strong>Retrógrados</strong>
-          <small>{retrogrades.length ? retrogrades.join(", ") : "Nenhum detectado hoje"}</small>
-        </span>
+        <span><strong>Retrógrados</strong><small>{retrogrades.length ? retrogrades.join(", ") : "Nenhum detectado hoje"}</small></span>
       </div>
-      <p className="sky-detail__note">Estes são movimentos gerais do céu. A leitura acima mostra quando eles foram relacionados ao seu mapa natal.</p>
+      <p className="sky-detail__note">Estes são movimentos gerais do céu. A Lua do dia aparece acima como o fio condutor da semana.</p>
     </section>
   );
 }

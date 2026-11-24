@@ -1,6 +1,7 @@
 import type { BirthProfile, DailyEphemeris, NatalChart } from "./types";
 import { PLANETS, planetName } from "./ephemeris";
 import { findAspect } from "./aspects";
+import { getMoonPhaseInfo } from "./moon-phases";
 import { findHouseForLongitude } from "./houses/placidus";
 import { formatDegrees } from "./formatters";
 
@@ -132,6 +133,7 @@ export function generateWeeklyPrompt(
   selectedDay: DailyEphemeris,
   weekRange: string
 ): string {
+  const moon = getMoonPhaseInfo(selectedDay);
   const aspectsList = selectedDay.globalAspects.length
     ? selectedDay.globalAspects
         .slice(0, 4)
@@ -153,6 +155,11 @@ export function generateWeeklyPrompt(
 
 Analise o panorama astrológico do dia ${selectedDay.date} (Semana: ${weekRange}) para ${profile.name}:
 
+CONTEXTO LUNAR:
+- Fase: ${moon.name}
+- Signo da Lua: ${moon.sign}
+- Lunação: ${moon.lunationLabel}
+
 TRÂNSITOS E MOVIMENTOS DO CÉU:
 ${aspectsList}
 - Planetas Retrógrados Ativos: ${retrogrades}
@@ -161,6 +168,8 @@ POR FAVOR, FORNEÇA:
 1. A energia principal deste dia e como ela impacta o foco mental e emocional.
 2. Orientações práticas para o Trabalho, Decisões e Relações Pessoais.
 3. Uma frase de intenção/atenção curta para guiar o dia.
+
+Considere a fase lunar, o signo da Lua e a lunação como contexto simbólico geral. Não invente posições, aspectos ou acontecimentos e não faça previsões deterministas.
 
 REGRAS RIGOROSAS DE FORMATAÇÃO:
 - Responda APENAS em texto Markdown limpo e formatado.
