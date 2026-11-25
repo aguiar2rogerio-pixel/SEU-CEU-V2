@@ -70,6 +70,10 @@ O build de produção fica em `dist/`. Não é preciso configurar chave de API n
 - [Repositório e licença do Astronomy Engine](https://github.com/cosinekitty/astronomy) — biblioteca aberta, sem dependências externas.
 - [Vite Plugin PWA](https://github.com/vite-pwa/vite-plugin-pwa) — gera o service worker e inclui os recursos compilados no precache para uso offline.
 
+## Créditos e licenças de terceiros
+
+Os arquivos `public/data/municipios.json` e `public/data/estados.json` foram obtidos do projeto [Municipios-Brasileiros](https://github.com/kelvins/Municipios-Brasileiros), de Kelvin S. do Prado, e são distribuídos sob a licença MIT. A atribuição e o texto completo da licença estão em [`NOTICE.md`](NOTICE.md).
+
 ## Próximas fases possíveis (não incluídas)
 
 Antes de adicionar uma API astrológica ou interpretação por IA, comparar fontes, precisão, limites, preço, licenças e privacidade. Uma futura IA deveria receber somente os aspectos previamente calculados, nunca inventar posições, e ficar atrás de um servidor — não embutir chave secreta no aplicativo. Contas, pagamentos e vendas também ficam fora deste MVP.
