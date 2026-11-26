@@ -87,9 +87,11 @@ describe("validação do cache semanal", () => {
       weeklyBundle: legacyBundle,
     };
 
-    const imported = parseBackup(JSON.stringify(backup));
-    expect(imported.profile).toEqual(profile);
-    expect(imported.weeklyBundle).toBeNull();
+	    const imported = parseBackup(JSON.stringify(backup));
+	    expect(imported.version).toBe(1);
+	    if (imported.version !== 1) return;
+	    expect(imported.profile).toEqual(profile);
+	    expect(imported.weeklyBundle).toBeNull();
   });
 
   it("rejeita um backup sem os campos de perfil necessários ao cálculo", () => {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { restoreProfileAndBundle } from "./storage";
+import { clearLocalData, restoreProfileAndBundle } from "./storage";
 import type { BirthProfile } from "./types";
 
 class MemoryStorage implements Storage {
@@ -66,5 +66,21 @@ describe("restoreProfileAndBundle", () => {
     expect(storage.getItem("seu_ceu_profile")).toBe(oldProfile);
     expect(storage.getItem("seu_ceu_weekly_bundle")).toBe(oldBundle);
     consoleError.mockRestore();
+  });
+
+  it("remove manifesto e mapas v2, inclusive um registro órfão", () => {
+    const storage = new MemoryStorage();
+    storage.setItem("seu_ceu_application_manifest_v2", JSON.stringify({ schemaVersion: 2, primaryMapId: "map-a", mapIds: ["map-a"], access: { testAccessGranted: true }, createdAt: "2026-11-17", updatedAt: "2026-11-17" }));
+    storage.setItem("seu_ceu_map_v2_map-a", "mapa");
+    storage.setItem("seu_ceu_map_v2_orphan", "órfão");
+    storage.setItem("seu_ceu_v2_test_access", "granted");
+    vi.stubGlobal("localStorage", storage);
+
+    clearLocalData();
+
+    expect(storage.getItem("seu_ceu_application_manifest_v2")).toBeNull();
+    expect(storage.getItem("seu_ceu_map_v2_map-a")).toBeNull();
+    expect(storage.getItem("seu_ceu_map_v2_orphan")).toBeNull();
+    expect(storage.getItem("seu_ceu_v2_test_access")).toBeNull();
   });
 });

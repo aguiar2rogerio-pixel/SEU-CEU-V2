@@ -152,3 +152,45 @@ export interface WeeklyBundle {
   days: DailyEphemeris[];
   readings: DailyReading[];
 }
+
+export type MapReadingId = "natal" | "current" | "yearly";
+
+export interface SavedInterpretation {
+  text: string;
+  type: MapReadingId;
+  savedAt: string;
+  calculationFingerprint: string;
+  profileName: string;
+  status: "current" | "stale";
+}
+
+export interface MapReadings {
+  natal: SavedInterpretation | null;
+  current: SavedInterpretation | null;
+  yearly: SavedInterpretation | null;
+}
+
+export interface NatalMapRecord {
+  id: string;
+  profile: BirthProfile;
+  natal: NatalChart | null;
+  weeklyBundle: WeeklyBundle | null;
+  readings: MapReadings;
+  calculationFingerprint: string;
+  calculationStatus: "ready" | "stale" | "pending" | "error";
+  natalExtensionsVersion: string | null;
+  createdAt: string;
+  updatedAt: string;
+  lastCalculatedAt: string | null;
+}
+
+export interface ApplicationManifest {
+  schemaVersion: 2;
+  primaryMapId: string | null;
+  mapIds: string[];
+  access: {
+    testAccessGranted: boolean;
+  };
+  createdAt: string;
+  updatedAt: string;
+}

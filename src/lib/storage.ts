@@ -1,6 +1,7 @@
 import type { BirthProfile, WeeklyBundle } from "./types";
 import { parseBirthProfile } from "./profile-validation";
 import { isWeeklyBundle } from "./weekly-bundle";
+import { APPLICATION_MANIFEST_KEY, MAP_KEY_PREFIX, loadApplicationManifest, migrateLegacyStorage } from "./map-storage";
 
 const PROFILE_KEY = "seu_ceu_profile";
 const BUNDLE_KEY = "seu_ceu_weekly_bundle";
@@ -40,6 +41,7 @@ export function clearTestAccess(): void {
 // ------------------------------
 export function loadProfile(): BirthProfile | null {
   try {
+    migrateLegacyStorage();
     const raw = localStorage.getItem(PROFILE_KEY);
     if (!raw) return null;
     return parseBirthProfile(JSON.parse(raw) as unknown);
@@ -199,6 +201,14 @@ export function clearLocalData(): void {
     localStorage.removeItem(AI_READING_KEY);
     (['natal', 'current', 'yearly'] as SavedReadingId[]).forEach((id) => localStorage.removeItem(`${EXPERIENCE_READING_PREFIX}${id}`));
     localStorage.removeItem(TEST_ACCESS_KEY);
+    const manifest = loadApplicationManifest();
+    const mapKeys = new Set<string>(manifest?.mapIds.map((id) => `${MAP_KEY_PREFIX}${id}`) ?? []);
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (key?.startsWith(MAP_KEY_PREFIX)) mapKeys.add(key);
+    }
+    mapKeys.forEach((key) => localStorage.removeItem(key));
+    localStorage.removeItem(APPLICATION_MANIFEST_KEY);
   } catch (error) {
     console.error("Erro ao apagar dados locais:", error);
     throw new Error("Não foi possível apagar os dados do navegador.");
