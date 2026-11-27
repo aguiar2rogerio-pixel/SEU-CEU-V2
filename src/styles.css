@@ -697,3 +697,26 @@ input[type="time"] {
   .saved-map-card__primary { align-self: flex-start; }
   .saved-map-card__actions { padding-left: 61px; }
 }
+
+/* Leituras e Segurança: consulta histórica independente do aplicativo pessoal */
+.reading-form-warning { margin: -4px 0 18px; padding: 13px 15px; border: 1px solid rgba(217,182,111,.27); border-left: 2px solid var(--gold); border-radius: 0 12px 12px 0; background: rgba(217,182,111,.07); }
+.reading-form-warning strong { color: var(--gold-light); font-size: .78rem; }
+.reading-form-warning p { margin: 5px 0 0; color: var(--muted); font-size: .72rem; line-height: 1.5; }
+.map-empty-state strong { color: var(--ink); font-size: .8rem; }
+.history-modal-backdrop { position: fixed; z-index: 50; inset: 0; display: flex; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 24px 18px; background: rgba(8,7,15,.82); backdrop-filter: blur(8px); }
+.history-modal { width: min(100%, 780px); min-height: min(100%, 680px); overflow: hidden; border: 1px solid rgba(217,182,111,.25); border-radius: 20px; background: var(--night); box-shadow: 0 28px 90px rgba(0,0,0,.48); }
+.history-modal__header { position: sticky; z-index: 2; top: 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 20px 24px 16px; border-bottom: 1px solid var(--line); background: rgba(17,16,29,.96); backdrop-filter: blur(18px); }
+.history-modal__header h2 { margin: 5px 0 4px; color: var(--ink); font-family: var(--serif); font-size: 1.65rem; font-weight: 400; }
+.history-modal__header p { margin: 0; color: var(--muted); font-size: .72rem; }
+.history-modal__close { width: 38px; height: 38px; }
+.history-modal__body { padding: 0 24px 28px; }
+.history-modal__body .page-intro { padding-top: 24px; }
+.history-modal__body .reading-back { margin-top: 22px; }
+.history-modal__body .map-additional-notice { display: none; }
+@media (max-width: 560px) {
+  .history-modal-backdrop { padding: 0; }
+  .history-modal { min-height: 100%; border: 0; border-radius: 0; }
+  .history-modal__header { padding: 17px 18px 14px; }
+  .history-modal__header h2 { font-size: 1.35rem; }
+  .history-modal__body { padding: 0 18px 24px; }
+}

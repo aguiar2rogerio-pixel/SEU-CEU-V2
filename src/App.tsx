@@ -6,6 +6,7 @@ import { MapPage, type MapPanelId } from "./components/MapPage";
 import { RadarPage } from "./components/RadarPage";
 import { WeekPage } from "./components/WeekPage";
 import { ProfilePage } from "./components/ProfilePage";
+import { HistoricalMapModal } from "./components/HistoricalMapModal";
 import { PillarsPreview } from "./components/PillarsPreview";
 import { ReadingExperiencePage, type ReadingExperienceId } from "./components/ReadingExperiencePage";
 import { generateCurrentPrompt, generateDepthPrompt, generateNatalPrompt, generateWeeklyPrompt } from "./lib/ai-prompts";
@@ -14,9 +15,9 @@ import { downloadBackupV2, parseBackup } from "./lib/backup";
 import { calculateNatalChart, calculateWeek, currentLocalISODate, EPHEMERIS_MODEL_VERSION, formatWeekRange, getMondayISO } from "./lib/ephemeris";
 import { calculateNatalExtensions } from "./lib/natal-extensions";
 import { createWeeklyReadings } from "./lib/readings";
-import { clearLocalData, saveTestAccess } from "./lib/storage";
+import { saveTestAccess } from "./lib/storage";
 import {
-  calculateProfileFingerprint, createEmptyMapRecord, deleteMapFromApplication,
+  addMapToApplication, calculateProfileFingerprint, createEmptyMapRecord, deleteMapFromApplication,
   loadAllNatalMapRecords, loadApplicationManifest, migrateLegacyStorage, restoreApplicationState, restoreImportedApplicationState,
   updateMapInApplication,
 } from "./lib/map-storage";
@@ -27,7 +28,7 @@ const NAV_ITEMS: { id: TabId; label: string; icon: typeof Sun }[] = [
   { id: "today", label: "Hoje", icon: Sun },
   { id: "map", label: "Meu mapa", icon: Orbit },
   { id: "week", label: "Semana", icon: CalendarDays },
-  { id: "profile", label: "Suas leituras", icon: Map },
+  { id: "profile", label: "Leituras", icon: Map },
 ];
 
 async function calculateNatal(profile: BirthProfile): Promise<NatalChart> {
@@ -82,6 +83,7 @@ function App() {
   const [isRecalculating, setIsRecalculating] = useState(false);
   const [readingExperience, setReadingExperience] = useState<ReadingExperienceId | null>(null);
   const [radarOpen, setRadarOpen] = useState(false);
+  const [historyModalId, setHistoryModalId] = useState<string | null>(null);
   const [openMapPanels, setOpenMapPanels] = useState<MapPanelId[]>([]);
   const [inputReading, setInputReading] = useState("");
   const [isEditingReading, setIsEditingReading] = useState(false);
@@ -93,6 +95,8 @@ function App() {
   useEffect(() => { const capture = (event: Event) => { event.preventDefault?.(); setInstallEvent(event); }; window.addEventListener("beforeinstallprompt", capture); return () => window.removeEventListener("beforeinstallprompt", capture); }, []);
 
   const primaryMap = useMemo(() => maps.find((map) => map.id === manifest?.primaryMapId) ?? null, [maps, manifest]);
+  const historyMaps = useMemo(() => maps.filter((map) => map.id !== manifest?.primaryMapId), [maps, manifest]);
+  const historicalMap = useMemo(() => historyMaps.find((map) => map.id === historyModalId) ?? null, [historyMaps, historyModalId]);
   const activeMap = useMemo(() => maps.find((map) => map.id === selectedMapId) ?? primaryMap, [maps, selectedMapId, primaryMap]);
   const profile = activeMap?.profile ?? null;
   const primaryProfile = primaryMap?.profile ?? null;
@@ -130,50 +134,53 @@ function App() {
   const selectedSky = bundle?.days.find((day) => day.date === selectedDate) ?? null;
   const notice = profile ? accuracyNotice(profile) : null;
 
-  async function handleSaveMap(nextProfile: BirthProfile, mapId: string | null) {
+  async function handleSaveMap(nextProfile: BirthProfile, mapId: string | null): Promise<boolean> {
     setError(""); setSuccess("");
     try {
       const existing = mapId ? maps.find((map) => map.id === mapId) ?? null : null;
       const shouldBePrimary = !existing && !manifest?.primaryMapId;
       if (existing && calculateProfileFingerprint(existing.profile) === calculateProfileFingerprint(nextProfile)) {
         const updated: NatalMapRecord = { ...existing, profile: nextProfile, readings: Object.fromEntries(Object.entries(existing.readings).map(([key, reading]) => [key, reading ? { ...reading, profileName: nextProfile.name } : null])) as NatalMapRecord["readings"], updatedAt: new Date().toISOString() };
-        updateMapInApplication(updated); reload(existing.id); setSuccess("Nome atualizado. O cálculo e a interpretação foram preservados."); return;
+        updateMapInApplication(updated); reload(existing.id); setSuccess("Nome atualizado. O cálculo e a interpretação foram preservados."); return true;
       }
       const base = existing ? { ...existing, profile: nextProfile } : createEmptyMapRecord(nextProfile);
       const natal = await calculateNatal(nextProfile);
       const weeklyBundle = shouldBePrimary ? await buildBundle(nextProfile, natal) : existing?.id === manifest?.primaryMapId ? await buildBundle(nextProfile, natal) : null;
       const updated: NatalMapRecord = { ...base, profile: nextProfile, natal, weeklyBundle, readings: existing ? { ...existing.readings, natal: null } : base.readings, calculationFingerprint: calculateProfileFingerprint(nextProfile), calculationStatus: "ready", natalExtensionsVersion: natal.natalExtensionsVersion ?? null, lastCalculatedAt: weeklyBundle?.calculatedAt ?? new Date().toISOString(), updatedAt: new Date().toISOString() };
-      if (existing) updateMapInApplication(updated); else {
+      if (existing) updateMapInApplication(updated); else if (manifest) {
+        addMapToApplication(updated, shouldBePrimary);
+      } else {
         const now = new Date().toISOString();
         const nextManifest: ApplicationManifest = { schemaVersion: 2, primaryMapId: shouldBePrimary ? updated.id : null, mapIds: [updated.id], access: { testAccessGranted: hasTestAccess }, createdAt: now, updatedAt: now };
         restoreApplicationState(nextManifest, [updated]);
       }
       reload(updated.id); setTab(shouldBePrimary ? (hasTestAccess ? "today" : "pillars") : "map"); setSuccess(existing ? "Dados natais atualizados. A interpretação natal anterior foi removida e o mapa foi recalculado." : "Novo mapa salvo neste aparelho.");
-    } catch (saveError) { setError(saveError instanceof Error ? saveError.message : "Não foi possível salvar este mapa."); }
+      return true;
+    } catch (saveError) { setError(saveError instanceof Error ? saveError.message : "Não foi possível salvar este mapa."); return false; }
   }
 
-  async function handleMakePrimary(id: string) {
-    const chosen = maps.find((map) => map.id === id);
-    if (!chosen) return;
+  async function handleSaveReading(nextProfile: BirthProfile): Promise<boolean> {
+    setError(""); setSuccess("");
     try {
+      const natal = await calculateNatal(nextProfile);
       const now = new Date().toISOString();
-      const nextMaps = await Promise.all(maps.map(async (map) => {
-        if (map.id === id) { const natal = map.natal ?? await calculateNatal(map.profile); return { ...map, natal, weeklyBundle: await buildBundle(map.profile, natal), calculationStatus: "ready" as const, natalExtensionsVersion: natal.natalExtensionsVersion ?? null, lastCalculatedAt: new Date().toISOString(), readings: { ...map.readings }, updatedAt: now }; }
-        if (map.id === manifest?.primaryMapId) return { ...map, weeklyBundle: null, readings: { natal: map.readings.natal, current: null, yearly: null }, updatedAt: now };
-        return map;
-      }));
-      const nextManifest: ApplicationManifest = { ...(manifest as ApplicationManifest), primaryMapId: id, updatedAt: now };
-      restoreApplicationState(nextManifest, nextMaps); reload(id); setTab("today"); setReadingExperience(null); setSuccess("Mapa principal transferido. Hoje e Semana agora usam este mapa.");
-    } catch (switchError) { setError(switchError instanceof Error ? switchError.message : "Não foi possível transferir o mapa principal."); }
+      const record = createEmptyMapRecord(nextProfile);
+      const updated: NatalMapRecord = { ...record, natal, weeklyBundle: null, calculationFingerprint: calculateProfileFingerprint(nextProfile), calculationStatus: "ready", natalExtensionsVersion: natal.natalExtensionsVersion ?? null, lastCalculatedAt: now, updatedAt: now };
+      if (manifest) addMapToApplication(updated, false);
+      else restoreApplicationState({ schemaVersion: 2, primaryMapId: null, mapIds: [updated.id], access: { testAccessGranted: hasTestAccess }, createdAt: now, updatedAt: now }, [updated]);
+      reload(updated.id); setSelectedMapId(updated.id); setTab("profile"); setHistoryModalId(updated.id); setReadingExperience(null); setRadarOpen(false); setSuccess("Mapa calculado e guardado no histórico.");
+      return true;
+    } catch (saveError) { setError(saveError instanceof Error ? saveError.message : "Não foi possível calcular este mapa."); return false; }
   }
 
   function handleDeleteMap(id: string) {
     const map = maps.find((item) => item.id === id);
-    if (!map || !window.confirm(`Excluir o mapa de ${map.profile.name}? Essa ação não afetará os outros mapas.`)) return;
-    try { deleteMapFromApplication(id); const nextPrimary = id === manifest?.primaryMapId ? null : manifest?.primaryMapId; reload(nextPrimary); setReadingExperience(null); setRadarOpen(false); setTab(nextPrimary ? "today" : "profile"); setSuccess("Mapa excluído sem alterar os demais mapas."); } catch (deleteError) { setError(deleteError instanceof Error ? deleteError.message : "Não foi possível excluir este mapa."); }
+    if (!map || !window.confirm(`Excluir o mapa de ${map.profile.name}? O cálculo e a leitura de IA deste registro serão removidos. Os demais mapas permanecerão intactos.`)) return;
+    try { deleteMapFromApplication(id); const nextPrimary = id === manifest?.primaryMapId ? null : manifest?.primaryMapId; setHistoryModalId(null); setReadingExperience(null); setRadarOpen(false); reload(nextPrimary); setTab(nextPrimary ? "today" : "profile"); setSuccess("Leitura excluída sem alterar os demais mapas."); } catch (deleteError) { setError(deleteError instanceof Error ? deleteError.message : "Não foi possível excluir este mapa."); }
   }
 
-  function handleSelectMap(id: string) { setSelectedMapId(id); setReadingExperience(null); setRadarOpen(false); setTab("map"); }
+  function openHistoricalMap(id: string) { setSelectedMapId(id); setHistoryModalId(id); setReadingExperience(null); setRadarOpen(false); }
+  function closeHistoricalMap() { setHistoryModalId(null); setReadingExperience(null); setRadarOpen(false); }
 
   function handleGrantTestAccess() {
     const persisted = saveTestAccess();
@@ -204,9 +211,33 @@ function App() {
     } catch (importError) { setError(importError instanceof Error ? importError.message : "Não foi possível restaurar o backup."); }
   }
 
+  async function handleImportHistory(file: File | undefined) {
+    if (!file) return;
+    try {
+      const backup = parseBackup(await file.text());
+      const importedMaps = backup.version === 2
+        ? backup.maps.filter((map) => map.id !== backup.manifest.primaryMapId)
+        : [{ ...createEmptyMapRecord(backup.profile), natal: backup.weeklyBundle?.natal ?? null, weeklyBundle: backup.weeklyBundle, calculationStatus: backup.weeklyBundle ? "ready" as const : "pending" as const, natalExtensionsVersion: backup.weeklyBundle?.natal.natalExtensionsVersion ?? null, lastCalculatedAt: backup.weeklyBundle?.calculatedAt ?? null }];
+      if (importedMaps.length === 0) throw new Error("O backup não contém leituras de terceiros para restaurar.");
+      const now = new Date().toISOString();
+      const currentManifest = manifest ?? { schemaVersion: 2 as const, primaryMapId: null, mapIds: [], access: { testAccessGranted: hasTestAccess }, createdAt: now, updatedAt: now };
+      const importedIds = new Set(importedMaps.map((map) => map.id));
+      const nextMaps = [...maps.filter((map) => !importedIds.has(map.id)), ...importedMaps];
+      const nextManifest: ApplicationManifest = { ...currentManifest, mapIds: nextMaps.map((map) => map.id), updatedAt: now };
+      restoreApplicationState(nextManifest, nextMaps); reload(nextManifest.primaryMapId); setTab("profile"); setSuccess("Histórico restaurado sem alterar o mapa pessoal.");
+    } catch (importError) { setError(importError instanceof Error ? importError.message : "Não foi possível restaurar o histórico."); }
+  }
+
   function handleDeleteData() {
-    if (!window.confirm("Apagar todos os mapas, leituras e o acesso deste aparelho? Se não tiver backup, não será possível recuperar estes dados.")) return;
-    try { clearLocalData(); setManifest(null); setMaps([]); setSelectedMapId(null); setHasTestAccess(false); setReadingExperience(null); setRadarOpen(false); setTab("pillars"); setSuccess(""); setError(""); } catch (deleteError) { setError(deleteError instanceof Error ? deleteError.message : "Não foi possível apagar os dados."); }
+    if (!window.confirm("Apagar todo o histórico de leituras? O mapa pessoal e as páginas Hoje, Meu Mapa e Semana serão preservados.")) return;
+    try {
+      if (manifest) {
+        const personalMaps = primaryMap ? [primaryMap] : [];
+        const nextManifest: ApplicationManifest = { ...manifest, mapIds: personalMaps.map((map) => map.id), updatedAt: new Date().toISOString() };
+        restoreApplicationState(nextManifest, personalMaps); reload(nextManifest.primaryMapId);
+      }
+      setHistoryModalId(null); setReadingExperience(null); setRadarOpen(false); setTab(primaryMap ? "today" : "profile"); setSuccess("Histórico de leituras apagado. O mapa pessoal foi preservado."); setError("");
+    } catch (deleteError) { setError(deleteError instanceof Error ? deleteError.message : "Não foi possível apagar o histórico."); }
   }
 
   function openReadingExperience(experience: ReadingExperienceId) { if (!activeMap || (!isPrimary && experience !== "natal")) return; setRadarOpen(false); setReadingExperience(experience); setInputReading(savedReadings[experience]?.text ?? ""); setIsEditingReading(false); setCopiedPromptType(null); if (experience === "yearly") { setDepthQuestion(""); setDepthPrompt(""); } }
@@ -224,6 +255,27 @@ function App() {
   const shortRange = formatWeekRange(weekStart);
   const birthTimeLabel = profile ? profile.birthTimeAccuracy === "unknown" ? "Horário desconhecido" : `${profile.birthTimeAccuracy === "approximate" ? "Aprox." : "Exato"} · ${profile.birthTime ?? ""}` : "";
   const canUsePrimary = Boolean(primaryMap && hasTestAccess);
+  const historicalReadingProps = historicalMap && readingExperience ? {
+    experience: readingExperience,
+    profile: historicalMap.profile,
+    natal: historicalMap.natal,
+    bundle: null,
+    savedText: historicalMap.readings[readingExperience]?.text ?? "",
+    inputText: inputReading,
+    copied: copiedPromptType === `reading-${readingExperience}`,
+    isEditing: isEditingReading,
+    onBack: () => setReadingExperience(null),
+    onCopyPrompt: copyReadingPrompt,
+    onEdit: () => { setInputReading(historicalMap.readings[readingExperience]?.text ?? ""); setIsEditingReading(true); },
+    onClear: clearCurrentReading,
+    onInputChange: setInputReading,
+    onSave: saveCurrentReading,
+    onCancelEdit: () => setIsEditingReading(false),
+    depthQuestion,
+    depthPromptReady: Boolean(depthPrompt),
+    onDepthQuestionChange: (value: string) => { setDepthQuestion(value); setDepthPrompt(""); },
+    onDepthExplore: exploreDepthMap,
+  } : null;
 
   return <div className={`app-shell${hasTestAccess ? "" : " app-shell--locked"}`}><header className="topbar"><a className="brand" href="#hoje" onClick={(event) => { event.preventDefault(); if (primaryMap) { setSelectedMapId(primaryMap.id); setTab(hasTestAccess ? "today" : "profile"); } }} aria-label="Seu Céu, início"><BrandMark /><span>SEU CÉU</span></a><div className="topbar-actions">{hasTestAccess && tab !== "today" && <button className="home-button" onClick={() => { if (primaryMap) { setSelectedMapId(primaryMap.id); setReadingExperience(null); setTab("today"); } }} aria-label="Voltar ao início"><Home size={16} /><span className="home-button__label">Início</span></button>}{!online ? <span className="offline-pill"><WifiOff size={13} /> Offline</span> : <span className="sync-pill"><span className="status-dot" /> No seu aparelho</span>}{installEvent && <button className="install-button" onClick={promptInstall}>Instalar</button>}</div></header>{error && <div className="toast toast--error" role="alert"><span>{error}</span><button onClick={() => setError("")}><X size={16} /></button></div>}{success && <div className="toast toast--success" role="status"><Check size={16} /><span>{success}</span><button onClick={() => setSuccess("")}><X size={16} /></button></div>}{notice && tab !== "pillars" && <div className="accuracy-banner"><span className="accuracy-banner__icon">i</span><p>{notice}</p><button onClick={(event) => event.currentTarget.parentElement?.remove()}><X size={16} /></button></div>}{!online && <div className="offline-banner"><WifiOff size={15} /><span>Sem conexão. Os dados disponíveis neste aparelho continuam acessíveis.</span></div>}
     <main className="page-content">
@@ -233,9 +285,9 @@ function App() {
       {tab === "map" && activeMap?.natal && radarOpen && !readingExperience && <RadarPage natal={activeMap.natal} onBack={() => setRadarOpen(false)} />}
       {tab === "map" && activeMap?.natal && !readingExperience && !radarOpen && <MapPage profile={profile as BirthProfile} natal={activeMap.natal} isPrimary={isPrimary} birthTimeLabel={birthTimeLabel} openPanels={openMapPanels} onTogglePanel={toggleMapPanel} onOpenRadar={() => { setReadingExperience(null); setRadarOpen(true); }} onOpenExperience={openReadingExperience} />}
       {tab === "week" && canUsePrimary && <WeekPage days={bundle?.days ?? []} readings={bundle?.readings ?? []} shortRange={shortRange} calculatedAt={bundle?.calculatedAt ?? null} todayISO={todayISO} selectedDate={selectedDate} selectedReading={selectedReading} selectedSky={selectedSky} copiedPromptType={copiedPromptType} onSelectDate={setSelectedDate} onCopyWeeklyPrompt={() => { if (selectedSky && bundle && primaryProfile) copyToClipboard(generateWeeklyPrompt(primaryProfile, bundle.natal, selectedSky, shortRange), "week"); }} />}
-      {tab === "profile" && <ProfilePage maps={maps} primaryMapId={manifest?.primaryMapId ?? null} selectedMapId={selectedMapId} onSelectMap={handleSelectMap} onSaveMap={(nextProfile, mapId) => void handleSaveMap(nextProfile, mapId)} onMakePrimary={(id) => void handleMakePrimary(id)} onDeleteMap={handleDeleteMap} onExportBackup={() => { if (manifest) { downloadBackupV2(manifest, maps); setSuccess("Backup exportado. Salve o arquivo em um local que você controle."); } }} onImportBackup={(file) => void handleImport(file)} onDeleteData={handleDeleteData} />}
+      {tab === "profile" && <ProfilePage maps={historyMaps} openMapId={historyModalId} onOpenMap={openHistoricalMap} onSaveReading={handleSaveReading} onDeleteMap={handleDeleteMap} onExportBackup={() => { if (manifest) { const historyManifest = { ...manifest, primaryMapId: null, mapIds: historyMaps.map((map) => map.id), updatedAt: new Date().toISOString() }; downloadBackupV2(historyManifest, historyMaps); setSuccess("Histórico exportado. O mapa pessoal não foi incluído."); } }} onImportBackup={(file) => void handleImportHistory(file)} onDeleteData={handleDeleteData} />}
       <footer className="app-footer"><span>SEU CÉU</span><p>Astrologia simbólica para reflexão pessoal. Não substitui orientação profissional.</p></footer>
-    </main>{hasTestAccess && <nav className="bottom-nav" aria-label="Navegação principal">{NAV_ITEMS.map(({ id, label, icon: Icon }) => <button key={id} className={`nav-item ${tab === id ? "is-active" : ""}`} disabled={(id === "today" || id === "week") && !primaryMap} onClick={() => { if (id === "today" || id === "week") setSelectedMapId(primaryMap?.id ?? null); if (id === "map") { setReadingExperience(null); setRadarOpen(false); } setTab(id); }}><Icon size={20} /><span>{label}</span></button>)}</nav>}</div>;
+    </main>{historicalMap && <HistoricalMapModal map={historicalMap} birthTimeLabel={historicalMap.profile.birthTimeAccuracy === "unknown" ? "Horário desconhecido" : `${historicalMap.profile.birthTimeAccuracy === "approximate" ? "Aprox." : "Exato"} · ${historicalMap.profile.birthTime ?? ""}`} openPanels={openMapPanels} radarOpen={radarOpen} readingProps={historicalReadingProps} onTogglePanel={toggleMapPanel} onOpenRadar={() => { setReadingExperience(null); setRadarOpen(true); }} onOpenExperience={openReadingExperience} onClose={closeHistoricalMap} />}{hasTestAccess && <nav className="bottom-nav" aria-label="Navegação principal">{NAV_ITEMS.map(({ id, label, icon: Icon }) => <button key={id} className={`nav-item ${tab === id ? "is-active" : ""}`} disabled={(id === "today" || id === "week") && !primaryMap} onClick={() => { if (id === "today" || id === "week") setSelectedMapId(primaryMap?.id ?? null); if (id === "map") { setReadingExperience(null); setRadarOpen(false); } setTab(id); }}><Icon size={20} /><span>{label}</span></button>)}</nav>}</div>;
 }
 
 function BrandMark() { return <span className="brand-mark" aria-hidden="true"><span className="brand-mark__moon" /><span className="brand-mark__star">✦</span></span>; }

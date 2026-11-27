@@ -102,7 +102,9 @@ describe("map-storage", () => {
     const second = createEmptyMapRecord({ ...profile, name: "Outra pessoa" });
     addMapToApplication(second);
     expect(loadApplicationManifest()?.mapIds).toHaveLength(2);
+    expect(loadApplicationManifest()?.primaryMapId).toBe(first.id);
     expect(loadNatalMapRecord(second.id)?.weeklyBundle).toBeNull();
+    expect(loadNatalMapRecord(first.id)?.profile.name).toBe("Pessoa principal");
     expect(setPrimaryMapInApplication(second.id).primaryMapId).toBe(second.id);
   });
 

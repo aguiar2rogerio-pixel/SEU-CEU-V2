@@ -17,6 +17,7 @@ type MapPageProps = {
   onTogglePanel: (panel: MapPanelId) => void;
   onOpenRadar: () => void;
   onOpenExperience: (experience: ReadingExperienceId) => void;
+  isHistorical?: boolean;
 };
 
 const COMPLEMENTARY_POINT_LABELS: { id: ComplementaryPointId; name: string; detail: string }[] = [
@@ -83,7 +84,7 @@ function MapPanel({ id, open, onToggle, children }: { id: MapPanelId; open: bool
   </section>;
 }
 
-export function MapPage({ profile, natal, isPrimary, birthTimeLabel, openPanels, onTogglePanel, onOpenRadar, onOpenExperience }: MapPageProps) {
+export function MapPage({ profile, natal, isPrimary, isHistorical = false, birthTimeLabel, openPanels, onTogglePanel, onOpenRadar, onOpenExperience }: MapPageProps) {
   const placidus = useMemo(() => calculateProfilePlacidus(profile, natal), [profile, natal]);
   const complementaryPositions = natal?.complementaryPoints ?? null;
   const angles = natal?.angles ?? null;
@@ -94,7 +95,7 @@ export function MapPage({ profile, natal, isPrimary, birthTimeLabel, openPanels,
       <section className="page-intro">
         <span className="eyebrow">SEU MAPA NATAL</span>
         <h1>O seu ponto de partida.</h1>
-        <p>{isPrimary ? "Uma visão organizada das posições calculadas a partir dos dados que você informou." : "Uma consulta natal independente. Este mapa adicional não altera Hoje ou Semana."}</p>
+        <p>{isPrimary ? "Uma visão organizada das posições calculadas a partir dos dados que você informou." : "Uma consulta natal independente para um familiar, amigo ou outra pessoa. Este mapa de terceiro não altera o mapa pessoal, Hoje ou Semana."}</p>
       </section>
       <div className="map-meta-card"><div><span>HORÁRIO</span><strong>{birthTimeLabel}</strong></div><div><span>LOCAL</span><strong>{profile.birthPlace || "Não informado"}</strong></div><div><span>FUSO</span><strong>{profile.birthTimezone}</strong></div></div>
       {profile.birthTimeAccuracy === "unknown" && <div className="inline-notice">Sem horário de nascimento, a Lua natal, o Ascendente, os ângulos e as casas ficam sem confirmação.</div>}
@@ -126,8 +127,8 @@ export function MapPage({ profile, natal, isPrimary, birthTimeLabel, openPanels,
         <button className="button button--secondary map-panel__action" onClick={onOpenRadar}><RadarIcon size={17} aria-hidden="true" /> Abrir Radar Astrológico</button>
       </MapPanel>
 
-      {isPrimary ? <MapPanel id="readings" open={isOpen("readings")} onToggle={() => onTogglePanel("readings")}>
-        <div className="interpretation-choice-grid"><button className="interpretation-choice" onClick={() => onOpenExperience("natal")}><Sparkles size={18} /><span><strong>Meu Mapa Natal</strong><small>Uma leitura integrada e permanente do seu mapa.</small></span><BookOpen size={16} /></button><button className="interpretation-choice" onClick={() => onOpenExperience("current")}><Orbit size={18} /><span><strong>Meu Momento Atual</strong><small>Trânsitos e ciclos em relação ao seu mapa.</small></span><BookOpen size={16} /></button><button className="interpretation-choice" onClick={() => onOpenExperience("yearly")}><Sun size={18} /><span><strong>Meu Mapa em Profundidade</strong><small>Explore uma pergunta específica do seu mapa natal.</small></span><BookOpen size={16} /></button></div>
+      {(isPrimary || isHistorical) ? <MapPanel id="readings" open={isOpen("readings")} onToggle={() => onTogglePanel("readings")}>
+        <div className="interpretation-choice-grid"><button className="interpretation-choice" onClick={() => onOpenExperience("natal")}><Sparkles size={18} /><span><strong>{isHistorical ? "Interpretar este mapa" : "Meu Mapa Natal"}</strong><small>Copie o prompt, use a IA de sua preferência e cole a leitura aqui.</small></span><BookOpen size={16} /></button>{isPrimary && <><button className="interpretation-choice" onClick={() => onOpenExperience("current")}><Orbit size={18} /><span><strong>Meu Momento Atual</strong><small>Trânsitos e ciclos em relação ao seu mapa.</small></span><BookOpen size={16} /></button><button className="interpretation-choice" onClick={() => onOpenExperience("yearly")}><Sun size={18} /><span><strong>Meu Mapa em Profundidade</strong><small>Explore uma pergunta específica do seu mapa natal.</small></span><BookOpen size={16} /></button></>}</div>
       </MapPanel> : <div className="inline-notice map-additional-notice">Este mapa adicional oferece consulta natal e sua interpretação natal salva. Hoje, Semana e as leituras do mapa principal continuam vinculadas ao mapa principal.</div>}
     </>
   );
